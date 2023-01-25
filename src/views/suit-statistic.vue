@@ -12,7 +12,7 @@
           <span class="col-4">LAST YEAR </span>
 
         </div>
-        <div v-if="!isLoading" class="row menu-list-body">
+        <div v-if="storeLoader" class="row menu-list-body">
           <span class="col-4"> {{lastMonthSuits.length}}</span>
           <span class="col-4"> {{lastThreeMonthSuits.length}} </span>
           <span class="col-4"> {{lastYearSuits.length}} </span>
@@ -42,17 +42,19 @@
   computed:{
     ...mapGetters({
       createdSuits: 'getSuits',
+      storeLoader: 'getLoader'
     }),
-
   },
+    watch: {
+      storeLoader(){
+        this.getSuits()
+      }
+    },
     methods: {
       async getSuits(){
         this.isLoading = true
         await this.$store.dispatch('getCreatedSuits')
         let currentTime = new Date().getTime()
-        console.log(currentTime)
-        console.log(this.createdSuits)
-        console.log(this.createdSuits[0].timeStamp)
         const lastMonthDate = new Date().getTime() - 30 * 24 * 3600 * 1000
         const lastThreeMonthDate = new Date().getTime() - 92 * 24 * 3600 * 1000
         const lastYearDate = new Date().getTime() - 365 * 24 * 3600 * 1000
