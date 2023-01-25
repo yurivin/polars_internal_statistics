@@ -5,36 +5,36 @@ import axios from "axios";
 Vue.use(Vuex);
 
 export default new Vuex.Store({
-  state: {},
+  state: {
+    createdSuits: []
+  },
   actions: {
-    async getCreatedSuits() {
+    async getCreatedSuits({commit}) {
         try {
-            const {
+            let {
                 data: { result: polygonResult },
             } = await axios.get(
-                'https://api.polygonscan.com/api?module=account&action=tokentx&address=0xabc0000000000000000000000000000000000def&startblock=0&endblock=99999999&sort=asc'
+                'https://api.polygonscan.com/api?module=account&action=txlist&address=0x28A764fB5eBECcf68d0Ea7Ee3eF8eb6799E347df&startblock=1&endblock=99999999&sort=desc'
             )
-            console.log(polygonResult)
-            // let value = 0
-            // const burtTokenArray = [
-            //     ...polygonResult,
-            //     ...etherscanResult,
-            //     ...bscscanResult,
-            // ]
-
-            // burtTokenArray.map((item) => (value += +item.value / Math.pow(10, 18)))
-            // value += HECO_BURN_POL
-            // localStorage.burnTokens = value
-            // localStorage.burnedTimer = new Date().getTime()
-            // commit('setBurnedTokens', value)
+            polygonResult = polygonResult.filter(item => item.methodId === '0xa58bb472' && +item.txreceipt_status
+            )
+            commit('setCreatedSuits', polygonResult)
         } catch (error) {
             console.log(error)
         }
     },
   },
-  mutations: {},
+  mutations: {
+      setCreatedSuits(state, payload) {
+          state.createdSuits = payload
+      }
+  },
 
-  getters: {},
+  getters: {
+      getSuits(state){
+          return state.createdSuits
+      }
+  },
 
   modules: {},
 });

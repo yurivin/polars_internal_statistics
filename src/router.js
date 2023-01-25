@@ -8,60 +8,8 @@ export default new Router({
     routes:[
         {
             path: '/',
-            name: 'home',
-            component: () => import ('./views/Home')
+            name: 'suit-statistic',
+            component: () => import ('./views/suit-statistic')
         },
-
-        {
-            path: '/films',
-            name: 'films',
-            component: () => import ('./views/FilmsPage')
-        },
-        {
-            path: '/serials',
-            name: 'serials',
-            component: () => import ('./views/Serials')
-        },
-        {
-            path: '/actors',
-            name: 'actors',
-            component: () => import ('./views/ActorsPage')
-        },
-        {
-            path: '/search',
-            name: 'search',
-            component: () => import ('./components/SearchResult')
-        },
-        {
-            path: '/films/:title',
-            name: 'Title',
-            component: () => import ('./views/AboutFilm')
-        },
-        {
-            path: '/likedFilms',
-            name: 'LikedFilms',
-            component: () => import ('./views/LikedFilms')
-        },
-
-        {
-            path: '/:name',
-            name: 'Name',
-            component: () => import ('./views/AboutActor')
-        },
-        {
-            path: '/films/genre/:id',
-            name: 'Name',
-            component: () => import ('./views/GenrePage')
-        },
-        {
-            path: '/films/user/recommendation',
-            name: 'Name',
-            component: () => import ('./views/RecommendationPage')
-        },
-
-
-
-
-
     ]
 })
