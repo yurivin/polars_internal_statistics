@@ -12,157 +12,266 @@ import {
 // import SUITE_ABI from '@/util/constants/contractsABI/suite2.json'
 // import ContractInstance from '@/util/ContractInstance'
 
-import { debounce } from "@/util/helpers";
+// import { debounce } from "@/util/helpers";
 
 Vue.use(Vuex);
 
 export default new Vuex.Store({
   state: {
-    createdSuits: localStorage.createdSuits ? JSON.parse(localStorage.createdSuits) : [],
-    createdOrdersContract: localStorage.createdOrdersContract ? JSON.parse(localStorage.createdOrdersContract) : [],
-    createdEventsContract: localStorage.createdEventsContract ? JSON.parse(localStorage.createdEventsContract) : [],
+    createdSuits: localStorage.createdSuits
+      ? JSON.parse(localStorage.createdSuits)
+      : [],
+    createdOrdersContract: localStorage.createdOrdersContract
+      ? JSON.parse(localStorage.createdOrdersContract)
+      : [],
+    createdEventsContract: localStorage.createdEventsContract
+      ? JSON.parse(localStorage.createdEventsContract)
+      : [],
     fetch: () => console.log("fetch"),
     loader: null,
     createdOrdersLoader: null,
     createdEventsLoader: null,
-    numbersOfTransOrderMade: localStorage.numbersOfTransOrderMade ? JSON.parse(localStorage.numbersOfTransOrderMade):[],
-    numbersOfTransStartEventMade: localStorage.numbersOfTransStartEventMade ? JSON.parse(localStorage.numbersOfTransStartEventMade): [],
-    finalResultOrders: localStorage.finalResultOrders ? JSON.parse(localStorage.finalResultOrders): null,
-    finalResultEvents: localStorage.finalResultEvents ? JSON.parse(localStorage.finalResultEvents): null,
-    canSendRequest: false,
+    numbersOfTransOrderMade: localStorage.numbersOfTransOrderMade
+      ? JSON.parse(localStorage.numbersOfTransOrderMade)
+      : [],
+    numbersOfTransStartEventMade: localStorage.numbersOfTransStartEventMade
+      ? JSON.parse(localStorage.numbersOfTransStartEventMade)
+      : [],
+    finalResultOrders: localStorage.finalResultOrders
+      ? JSON.parse(localStorage.finalResultOrders)
+      : null,
+    finalResultEvents: localStorage.finalResultEvents
+      ? JSON.parse(localStorage.finalResultEvents)
+      : null,
+    canSendRequest: true,
   },
   actions: {
-    async initFetchTransaction({ commit }, timer) {
-      const fetch = debounce(
-        async ({ type, addresses }) => {
-          if (type === "CreatedSuits") {
-            try {
-              let {
-                data: { result: polygonResult },
-              } = await axios.get(
-                `${DEFAULT_SCAN_LINK[LOCATION_NETWORK_ID]}?module=account&action=txlist&address=${SUITE_FACTORY_ADDRESS[LOCATION_NETWORK_ID]}&startblock=1&endblock=99999999&sort=desc`
-              );
-              polygonResult = polygonResult.filter(
-                (item) =>
-                  item.methodId === "0xa58bb472" && +item.txreceipt_status
-              );
-              commit("setCreatedSuits", polygonResult);
-              commit("setLoader", true);
-            } catch (error) {
-              console.log(error);
-            }
-          }
-          if (type === "CreatedOrdersContract") {
-            try {
-              let {
-                data: { result: polygonResult },
-              } = await axios.get(
-                `${DEFAULT_SCAN_LINK[LOCATION_NETWORK_ID]}?module=account&action=txlist&address=${PENDING_ORDERS_FACTORY_ADDRESS[LOCATION_NETWORK_ID]}&startblock=1&endblock=99999999&sort=desc`
-              );
-              polygonResult = polygonResult.filter(
-                (item) =>
-                  item.methodId === "0xe2d73ccd" && +item.txreceipt_status
-              );
-              commit("setCreatedOrdersContract", polygonResult);
-              commit("setCreatedOrdersLoader", true);
-              console.log(polygonResult);
-            } catch (error) {
-              console.log(error);
-            }
-          }
-          if (type === "CreatedEventsContract") {
-            try {
-              let {
-                data: { result: polygonResult },
-              } = await axios.get(
-                `${DEFAULT_SCAN_LINK[LOCATION_NETWORK_ID]}?module=account&action=txlist&address=${EVENT_LIFE_CYCLE_FACTORY_ADDRESS[LOCATION_NETWORK_ID]}&startblock=1&endblock=99999999&sort=desc`
-              );
-              polygonResult = polygonResult.filter(
-                (item) =>
-                  item.methodId === "0x3c46c43c" && +item.txreceipt_status
-              );
-              commit("setCreatedEventsContract", polygonResult);
-              commit("setCreatedEventsLoader", true);
-              console.log(polygonResult);
-            } catch (error) {
-              console.log(error);
-            }
-          }
-          if (type === "AllOrders") {
-            let object = {
-              [addresses.suitAddress]: { [addresses.orderAddress]: {} },
-            };
-            try {
-              let {
-                data: { result: polygonResult },
-              } = await axios.get(
-                `${DEFAULT_SCAN_LINK[LOCATION_NETWORK_ID]}?module=account&action=txlist&address=${addresses.orderAddress}&startblock=1&endblock=99999999&sort=desc`
-              );
-              polygonResult = polygonResult.filter(
-                (item) =>
-                  item.methodId === "0xe44b2892" && +item.txreceipt_status
-              );
-              // commit('setCreatedEventsLoader', true)
-              object[addresses.suitAddress][addresses.orderAddress] =
-                polygonResult;
-              // console.log(object)
-              commit("setNumbersOfTransOrderMade", object);
-            } catch (error) {
-              console.log(error);
-            }
-          }
-          if (type === "AllEvents") {
-            let object = {
-              [addresses.suitAddress]: { [addresses.eventAddress]: {} },
-            };
-            try {
-              let {
-                data: { result: polygonResult },
-              } = await axios.get(
-                `${DEFAULT_SCAN_LINK[LOCATION_NETWORK_ID]}?module=account&action=txlist&address=${addresses.eventAddress}&startblock=1&endblock=99999999&sort=desc`
-              );
-              polygonResult = polygonResult.filter(
-                (item) =>
-                  item.methodId === "0xe2fd38e9" && +item.txreceipt_status
-              );
-              // commit('setCreatedEventsLoader', true)
-              object[addresses.suitAddress][addresses.eventAddress] =
-                polygonResult;
-              // console.log(object)
-              commit("setNumbersOfTransEventStartMade", object);
-            } catch (error) {
-              console.log(error);
-            }
-          }
-        },
-        timer === 0 ? timer : timeOutApi
-      );
-      commit("setFetchTransaction", fetch);
-    },
+    // async initFetchTransaction({ commit }, timer) {
+    //   const fetch = debounce(
+    //     async ({ type, addresses }) => {
+    //       if (type === "CreatedSuits") {
+    //         try {
+    //           let {
+    //             data: { result: polygonResult },
+    //           } = await axios.get(
+    //             `${DEFAULT_SCAN_LINK[LOCATION_NETWORK_ID]}?module=account&action=txlist&address=${SUITE_FACTORY_ADDRESS[LOCATION_NETWORK_ID]}&startblock=1&endblock=99999999&sort=desc`
+    //           );
+    //           polygonResult = polygonResult.filter(
+    //             (item) =>
+    //               item.methodId === "0xa58bb472" && +item.txreceipt_status
+    //           );
+    //           commit("setCreatedSuits", polygonResult);
+    //           commit("setLoader", true);
+    //           setTimeout(() => commit("setPermissionToRequest", true), timeOutApi);
+    //         } catch (error) {
+    //           console.log(error);
+    //         }
+    //       }
+    //       if (type === "CreatedOrdersContract") {
+    //         try {
+    //           let {
+    //             data: { result: polygonResult },
+    //           } = await axios.get(
+    //             `${DEFAULT_SCAN_LINK[LOCATION_NETWORK_ID]}?module=account&action=txlist&address=${PENDING_ORDERS_FACTORY_ADDRESS[LOCATION_NETWORK_ID]}&startblock=1&endblock=99999999&sort=desc`
+    //           );
+    //           polygonResult = polygonResult.filter(
+    //             (item) =>
+    //               item.methodId === "0xe2d73ccd" && +item.txreceipt_status
+    //           );
+    //           commit("setCreatedOrdersContract", polygonResult);
+    //           commit("setCreatedOrdersLoader", true);
+    //           setTimeout(() => commit("setPermissionToRequest", true), timeOutApi);
+    //
+    //           console.log(polygonResult);
+    //         } catch (error) {
+    //           console.log(error);
+    //         }
+    //       }
+    //       if (type === "CreatedEventsContract") {
+    //         try {
+    //           let {
+    //             data: { result: polygonResult },
+    //           } = await axios.get(
+    //             `${DEFAULT_SCAN_LINK[LOCATION_NETWORK_ID]}?module=account&action=txlist&address=${EVENT_LIFE_CYCLE_FACTORY_ADDRESS[LOCATION_NETWORK_ID]}&startblock=1&endblock=99999999&sort=desc`
+    //           );
+    //           polygonResult = polygonResult.filter(
+    //             (item) =>
+    //               item.methodId === "0x3c46c43c" && +item.txreceipt_status
+    //           );
+    //           commit("setCreatedEventsContract", polygonResult);
+    //           commit("setCreatedEventsLoader", true);
+    //           setTimeout(() => commit("setPermissionToRequest", true), timeOutApi);
+    //
+    //           console.log(polygonResult);
+    //         } catch (error) {
+    //           console.log(error);
+    //         }
+    //       }
+    //       if (type === "AllOrders") {
+    //         let object = {
+    //           [addresses.suitAddress]: { [addresses.orderAddress]: {} },
+    //         };
+    //         try {
+    //           let {
+    //             data: { result: polygonResult },
+    //           } = await axios.get(
+    //             `${DEFAULT_SCAN_LINK[LOCATION_NETWORK_ID]}?module=account&action=txlist&address=${addresses.orderAddress}&startblock=1&endblock=99999999&sort=desc`
+    //           );
+    //           polygonResult = polygonResult.filter(
+    //             (item) =>
+    //               item.methodId === "0xe44b2892" && +item.txreceipt_status
+    //           );
+    //           object[addresses.suitAddress][addresses.orderAddress] =
+    //             polygonResult;
+    //           // console.log(object)
+    //           commit("setNumbersOfTransOrderMade", object);
+    //           setTimeout(() => commit("setPermissionToRequest", true), timeOutApi);
+    //         } catch (error) {
+    //           console.log(error);
+    //         }
+    //       }
+    //       if (type === "AllEvents") {
+    //         let object = {
+    //           [addresses.suitAddress]: { [addresses.eventAddress]: {} },
+    //         };
+    //         try {
+    //           let {
+    //             data: { result: polygonResult },
+    //           } = await axios.get(
+    //             `${DEFAULT_SCAN_LINK[LOCATION_NETWORK_ID]}?module=account&action=txlist&address=${addresses.eventAddress}&startblock=1&endblock=99999999&sort=desc`
+    //           );
+    //           polygonResult = polygonResult.filter(
+    //             (item) =>
+    //               item.methodId === "0xe2fd38e9" && +item.txreceipt_status
+    //           );
+    //           object[addresses.suitAddress][addresses.eventAddress] =
+    //             polygonResult;
+    //           // console.log(object)
+    //           commit("setNumbersOfTransEventStartMade", object);
+    //           setTimeout(() => commit("setPermissionToRequest", true), timeOutApi);
+    //         } catch (error) {
+    //           console.log(error);
+    //         }
+    //       }
+    //     },
+    //     timer === 0 ? timer : timeOutApi
+    //   );
+    //   commit("setFetchTransaction", fetch);
+    // },
 
-    async getCreatedSuits({ state }) {
-      await state.fetch({ type: "CreatedSuits" });
+    async getCreatedSuits({ commit }) {
+      // await state.fetch({ type: "CreatedSuits" });
+      try {
+        let {
+          data: { result: polygonResult },
+        } = await axios.get(
+          `${DEFAULT_SCAN_LINK[LOCATION_NETWORK_ID]}?module=account&action=txlist&address=${SUITE_FACTORY_ADDRESS[LOCATION_NETWORK_ID]}&startblock=1&endblock=99999999&sort=desc`
+        );
+        polygonResult = polygonResult.filter(
+          (item) => item.methodId === "0xa58bb472" && +item.txreceipt_status
+        );
+        commit("setCreatedSuits", polygonResult);
+        commit("setLoader", true);
+        setTimeout(() => commit("setPermissionToRequest", true), timeOutApi);
+      } catch (error) {
+        console.log(error);
+      }
     },
-    async getCreatedOrders({ state }) {
-      await state.fetch({ type: "CreatedOrdersContract" });
+    async getCreatedOrders({ commit }) {
+      // await state.fetch({ type: "CreatedOrdersContract" });
+      try {
+        let {
+          data: { result: polygonResult },
+        } = await axios.get(
+          `${DEFAULT_SCAN_LINK[LOCATION_NETWORK_ID]}?module=account&action=txlist&address=${PENDING_ORDERS_FACTORY_ADDRESS[LOCATION_NETWORK_ID]}&startblock=1&endblock=99999999&sort=desc`
+        );
+        polygonResult = polygonResult.filter(
+          (item) => item.methodId === "0xe2d73ccd" && +item.txreceipt_status
+        );
+        commit("setCreatedOrdersContract", polygonResult);
+        commit("setCreatedOrdersLoader", true);
+        setTimeout(() => commit("setPermissionToRequest", true), timeOutApi);
+
+        console.log(polygonResult);
+      } catch (error) {
+        console.log(error);
+      }
     },
-    async getCreatedEvents({ state }) {
-      await state.fetch({ type: "CreatedEventsContract" });
+    async getCreatedEvents({ commit }) {
+      // await state.fetch({ type: "CreatedEventsContract" });
+      try {
+        let {
+          data: { result: polygonResult },
+        } = await axios.get(
+          `${DEFAULT_SCAN_LINK[LOCATION_NETWORK_ID]}?module=account&action=txlist&address=${EVENT_LIFE_CYCLE_FACTORY_ADDRESS[LOCATION_NETWORK_ID]}&startblock=1&endblock=99999999&sort=desc`
+        );
+        polygonResult = polygonResult.filter(
+          (item) => item.methodId === "0x3c46c43c" && +item.txreceipt_status
+        );
+        commit("setCreatedEventsContract", polygonResult);
+        commit("setCreatedEventsLoader", true);
+        setTimeout(() => commit("setPermissionToRequest", true), timeOutApi);
+
+        console.log(polygonResult);
+      } catch (error) {
+        console.log(error);
+      }
     },
-    async getTransactionOrders({ state }, addresses) {
-      await state.fetch({ type: "AllOrders", addresses });
+    async getTransactionOrders({ commit }, addresses) {
+      // await state.fetch({ type: "AllOrders", addresses });
+      console.log(addresses)
+      let object = {
+        [addresses.suitAddress]: { [addresses.orderAddress]: {} },
+      };
+      try {
+        let {
+          data: { result: polygonResult },
+        } = await axios.get(
+          `${DEFAULT_SCAN_LINK[LOCATION_NETWORK_ID]}?module=account&action=txlist&address=${addresses.orderAddress}&startblock=1&endblock=99999999&sort=desc`
+        );
+        polygonResult = polygonResult.filter(
+          (item) => item.methodId === "0xe44b2892" && +item.txreceipt_status
+        );
+        object[addresses.suitAddress][addresses.orderAddress] = polygonResult;
+        // console.log(object)
+        commit("setNumbersOfTransOrderMade", object);
+        setTimeout(() => commit("setPermissionToRequest", true), timeOutApi);
+      } catch (error) {
+        console.log(error);
+      }
     },
-    async getTransactionEvents({ state }, addresses) {
-      await state.fetch({ type: "AllEvents", addresses });
+    async getTransactionEvents({ commit }, addresses) {
+      // await state.fetch({ type: "AllEvents", addresses });
+      let object = {
+        [addresses.suitAddress]: { [addresses.eventAddress]: {} },
+      };
+      try {
+        let {
+          data: { result: polygonResult },
+        } = await axios.get(
+          `${DEFAULT_SCAN_LINK[LOCATION_NETWORK_ID]}?module=account&action=txlist&address=${addresses.eventAddress}&startblock=1&endblock=99999999&sort=desc`
+        );
+        polygonResult = polygonResult.filter(
+          (item) => item.methodId === "0xe2fd38e9" && +item.txreceipt_status
+        );
+        object[addresses.suitAddress][addresses.eventAddress] = polygonResult;
+        // console.log(object)
+        commit("setNumbersOfTransEventStartMade", object);
+        setTimeout(() => commit("setPermissionToRequest", true), timeOutApi);
+      } catch (error) {
+        console.log(error);
+      }
     },
   },
   mutations: {
-    setPermissionToRequest(state, payload){
-      state.canSendRequest = payload
+    setPermissionToRequest(state, payload) {
+      state.canSendRequest = payload;
     },
     setNumbersOfTransEventStartMade(state, payload) {
       state.numbersOfTransStartEventMade.push(payload);
-      localStorage.numbersOfTransStartEventMade = JSON.stringify(state.numbersOfTransStartEventMade)
+      localStorage.numbersOfTransStartEventMade = JSON.stringify(
+        state.numbersOfTransStartEventMade
+      );
       const obj = {};
       for (let i = 0; i < state.numbersOfTransStartEventMade.length; i++) {
         obj[Object.keys(state.numbersOfTransStartEventMade[i])] =
@@ -171,12 +280,14 @@ export default new Vuex.Store({
           ];
       }
       state.finalResultEvents = obj;
-      localStorage.finalResultEvents = JSON.stringify(obj)
+      localStorage.finalResultEvents = JSON.stringify(obj);
       console.log(obj);
     },
     setNumbersOfTransOrderMade(state, payload) {
       state.numbersOfTransOrderMade.push(payload);
-      localStorage.numbersOfTransOrderMade = JSON.stringify(state.numbersOfTransOrderMade)
+      localStorage.numbersOfTransOrderMade = JSON.stringify(
+        state.numbersOfTransOrderMade
+      );
 
       const obj = {};
       for (let i = 0; i < state.numbersOfTransOrderMade.length; i++) {
@@ -186,19 +297,19 @@ export default new Vuex.Store({
           ];
       }
       state.finalResultOrders = obj;
-      localStorage.finalResultOrders = JSON.stringify(obj)
+      localStorage.finalResultOrders = JSON.stringify(obj);
     },
     setCreatedEventsContract(state, payload) {
       state.createdEventsContract = payload;
-      localStorage.createdEventsContract = JSON.stringify(payload)
+      localStorage.createdEventsContract = JSON.stringify(payload);
     },
     setCreatedOrdersContract(state, payload) {
       state.createdOrdersContract = payload;
-      localStorage.createdOrdersContract = JSON.stringify(payload)
+      localStorage.createdOrdersContract = JSON.stringify(payload);
     },
     setCreatedSuits(state, payload) {
       state.createdSuits = payload;
-      localStorage.createdSuits = JSON.stringify(payload)
+      localStorage.createdSuits = JSON.stringify(payload);
     },
     setFetchTransaction(state, payload) {
       state.fetch = payload;
@@ -242,9 +353,9 @@ export default new Vuex.Store({
     getCreatedEventsLoader(state) {
       return state.createdEventsLoader;
     },
-    getPermissionToRequest(state){
-      return state.canSendRequest
-    }
+    getPermissionToRequest(state) {
+      return state.canSendRequest;
+    },
   },
   modules: {},
 });

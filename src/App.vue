@@ -11,9 +11,9 @@ export default {
   components: {
 
   },
-  created() {
-    this.$store.dispatch('initFetchTransaction')
-  },
+  // created() {
+  //   this.$store.dispatch('initFetchTransaction')
+  // },
 }
 </script>
 
