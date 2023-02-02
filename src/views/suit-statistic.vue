@@ -74,6 +74,7 @@ export default {
       storeCreatedEventsLoader: "getCreatedEventsLoader",
       finalResultOrders: "getFinalResultOrders",
       finalResultEvents: "getFinalResultEvents",
+      getPermissionToRequest: "getPermissionToRequest",
     }),
   },
   watch: {
@@ -90,18 +91,47 @@ export default {
       this.setEventsContracts();
     },
     contractsAddressesBySuitArray() {
-      this.getAllTransactionOfSuits()
+      this.getAllTransactionOfSuits();
+    },
+    getPermissionToRequest() {
+      if (
+        this.getPermissionToRequest &&
+        !this.storeLoader &&
+        !localStorage.createdSuits
+      ) {
+        this.getSuits();
+      }
+      if (this.getPermissionToRequest && !this.storeCreatedOrdersLoader) {
+        this.getCreatedOrdersBySuits();
+      }
+      if (
+        this.getPermissionToRequest &&
+        this.storeCreatedOrdersLoader &&
+        !this.storeCreatedEventsLoader
+      ) {
+        this.getCreatedEventsBySuits();
+      }
+      if (
+        this.getPermissionToRequest &&
+        this.contractsAddressesBySuitArray[this.filteredSuitAddressesArray[0]]
+      ) {
+        this.getAllTransactionOfSuits();
+      }
     },
   },
   methods: {
     getAllTransactionOfSuits() {
       for (let i = 0; i < this.filteredSuitAddressesArray.length; i++) {
         if (
-          !localStorage.finalResultOrders ||
-          !JSON.parse(localStorage.finalResultOrders)[
-            this.filteredSuitAddressesArray[i]
-          ]
+          this.getPermissionToRequest &&
+          (!localStorage.finalResultOrders ||
+            !JSON.parse(localStorage.finalResultOrders)[
+              this.filteredSuitAddressesArray[i]
+            ])
         ) {
+          console.log(this.contractsAddressesBySuitArray);
+          this.$store.commit("setPermissionToRequest", false);
+
           this.$store.dispatch(
             "getTransactionOrders",
             this.contractsAddressesBySuitArray[
@@ -110,11 +140,14 @@ export default {
           );
         }
         if (
-          !localStorage.finalResultEvents ||
-          !JSON.parse(localStorage.finalResultEvents)[
-            this.filteredSuitAddressesArray[i]
-          ]
+          this.getPermissionToRequest &&
+          (!localStorage.finalResultEvents ||
+            !JSON.parse(localStorage.finalResultEvents)[
+              this.filteredSuitAddressesArray[i]
+            ])
         ) {
+          this.$store.commit("setPermissionToRequest", false);
+
           this.$store.dispatch(
             "getTransactionEvents",
             this.contractsAddressesBySuitArray[
@@ -406,7 +439,10 @@ export default {
     },
     async getSuits() {
       if (!localStorage.createdSuits) {
-        await this.$store.dispatch("getCreatedSuits");
+        if (this.getPermissionToRequest) {
+          this.$store.commit("setPermissionToRequest", false);
+          await this.$store.dispatch("getCreatedSuits");
+        }
       } else {
         this.localLoader = true;
         this.culcSuitsByDate();
@@ -445,11 +481,23 @@ export default {
       this.allSuitsAddressesArray = suitAddressesArray;
       console.log(suitAddressesArray);
     },
-    async getCreatedContractsBySuits() {
-      if (!localStorage.createdOrdersContract || +localStorage.timer + 24 * 3600 * 1000 < new Date().getTime()) {
+    async getCreatedOrdersBySuits() {
+      if (
+        this.getPermissionToRequest &&
+        (!localStorage.createdOrdersContract ||
+          +localStorage.timer + 24 * 3600 * 1000 < new Date().getTime())
+      ) {
+        this.$store.commit("setPermissionToRequest", false);
         await this.$store.dispatch("getCreatedOrders");
       }
-      if (!localStorage.createdEventsContract || +localStorage.timer + 24 * 3600 * 1000 < new Date().getTime()) {
+    },
+    async getCreatedEventsBySuits() {
+      if (
+        this.getPermissionToRequest &&
+        (!localStorage.createdEventsContract ||
+          +localStorage.timer + 24 * 3600 * 1000 < new Date().getTime())
+      ) {
+        this.$store.commit("setPermissionToRequest", false);
         await this.$store.dispatch("getCreatedEvents");
       }
     },
@@ -459,15 +507,19 @@ export default {
       this.localLoader = true;
       this.culcSuitsByDate();
     }
-    console.log(+localStorage.timer + 3600 * 1000 , new Date().getTime())
-    if (!localStorage.timer || +localStorage.timer + 24 * 3600 * 1000 < new Date().getTime()) {
-      localStorage.timer =  new Date().getTime()
+    console.log(+localStorage.timer + 3600 * 1000, new Date().getTime());
+    if (
+      !localStorage.timer ||
+      +localStorage.timer + 24 * 3600 * 1000 < new Date().getTime()
+    ) {
+      localStorage.timer = new Date().getTime();
 
       await this.getSuits();
-      await this.getCreatedContractsBySuits();
+      await this.getCreatedOrdersBySuits();
+      await this.getCreatedEventsBySuits();
     }
-    if (localStorage.finalResultOrders){
-      this.getAllTransactionOfSuits()
+    if (localStorage.finalResultOrders) {
+      this.getAllTransactionOfSuits();
     }
   },
 };

@@ -122,7 +122,7 @@ export const LEVERAGE_FACTORY_ADDRESS = {
     137: '0x0f0e40314e3bCdA2F8E076F14B9081e61c99f902',
 }
 
-export const timeOutApi = 6000
+export const timeOutApi = 5000
 
 export const isSuitesVisibles = false
 // isSuitesVisibles === true - both types of suites available
