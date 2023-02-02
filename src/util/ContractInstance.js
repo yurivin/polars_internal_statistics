@@ -1,8 +1,5 @@
-import { checkAndInstantiateWeb3, getPlatformId } from '@/util/web3'
-import { PLATFORM_CONFIG } from '@/util/constants/mergeVariables'
-import {
-  LOCATION_NETWORK_ID,
-} from '@/util/constants/mergeVariables'
+import { checkAndInstantiateWeb3 } from '@/util/web3'
+
 
 class ContractInstance {
   constructor(abi, address) {
@@ -44,27 +41,11 @@ class ContractInstance {
           // each view-method of the contract returns {method: String, data: Any } object
           return func.call().then((data) => Object.assign({}, { method, data }))
         } else {
-          const from = (await this.web3Instance.eth.getAccounts())[0]
 
           // TODO: rewrite Promise executor function
           // eslint-disable-next-line no-async-promise-executor
           return new Promise(async (resolve, reject) => {
             func
-              .send(
-                Object.assign(
-                  {
-                    from,
-                    gasLimit:
-                      address ===
-                      PLATFORM_CONFIG[LOCATION_NETWORK_ID][
-                        await getPlatformId()
-                      ].contractAddresses.farmingPool
-                        ? '300000'
-                        : '',
-                  },
-                  ...excessInputs
-                )
-              )
               .on('transactionHash', function (hash) {
                 generateCustomEvent(`transactionHash`, hash)
               })

@@ -10,73 +10,466 @@
           <span class="col-4">LAST MONTH</span>
           <span class="col-4">LAST 3 MONTH </span>
           <span class="col-4">LAST YEAR </span>
-
         </div>
-        <div v-if="storeLoader" class="row menu-list-body">
-          <span class="col-4"> {{lastMonthSuits.length}}</span>
-          <span class="col-4"> {{lastThreeMonthSuits.length}} </span>
-          <span class="col-4"> {{lastYearSuits.length}} </span>
-
+        <div v-if="storeLoader || localLoader" class="row menu-list-body">
+          <span class="col-4"> {{ lastMonthSuits.length }}</span>
+          <span class="col-4"> {{ lastThreeMonthSuits.length }} </span>
+          <span class="col-4"> {{ lastYearSuits.length }} </span>
         </div>
         <div v-else class="loader">
           <img src="../assets/images/loader.svg" alt="Loading" />
         </div>
       </div>
     </div>
+    <AmountOrdersStatTable
+      class="mt-5"
+      v-if="finalResultOrders && finalResultEvents"
+      :rows="filteredSuitAddressesArray"
+      :contractItemObject="contractsAddressesBySuitArray"
+      :itemObject="finalResultOrders"
+      :eventItemObject="finalResultEvents"
+      @sortBy3MonthOrder="sortBy3MonthOrder"
+      @sortByMonthOrder="sortByMonthOrder"
+      @sortBy3MonthEvent="sortBy3MonthEvent"
+      @sortByMonthEvent="sortByMonthEvent"
+    />
+    <div v-else class="loader">
+      <img src="../assets/images/loader.svg" alt="Loading" />
+    </div>
   </div>
 </template>
 
 <script>
-  import {mapGetters} from "vuex";
+import { mapGetters } from "vuex";
+import { checkAndInstantiateWeb3 } from "@/util/web3";
+import AmountOrdersStatTable from "@/components/tables/AmountOrdersStatTable";
 
-  export default {
+export default {
   name: "suit-statistic",
+  components: { AmountOrdersStatTable },
   data() {
     return {
-      isLoading: true,
+      localLoader: false,
       lastMonthSuits: [],
       lastThreeMonthSuits: [],
       lastYearSuits: [],
+      allSuitsAddressesArray: [],
+      allContractsBySuitsArray: [],
+      filteredSuitAddressesArray: localStorage.filteredAddressesSuits
+        ? JSON.parse(localStorage.filteredAddressesSuits)
+        : [],
+      contractsAddressesBySuitArray: localStorage.allSuitsContracts
+        ? JSON.parse(localStorage.allSuitsContracts)
+        : {},
+      renderComponent: true,
     };
   },
-  computed:{
+  computed: {
     ...mapGetters({
-      createdSuits: 'getSuits',
-      storeLoader: 'getLoader'
+      createdSuits: "getSuits",
+      storeLoader: "getLoader",
+      createdOrders: "getCreatedOrders",
+      storeCreatedOrdersLoader: "getCreatedOrdersLoader",
+      createdEvents: "getCreatedEvents",
+      storeCreatedEventsLoader: "getCreatedEventsLoader",
+      finalResultOrders: "getFinalResultOrders",
+      finalResultEvents: "getFinalResultEvents",
     }),
   },
-    watch: {
-      storeLoader(){
-        this.getSuits()
+  watch: {
+    storeLoader() {
+      this.culcSuitsByDate();
+    },
+    createdSuits() {
+      this.getAllSuitAddresses();
+    },
+    storeCreatedOrdersLoader() {
+      this.setOrdersContracts();
+    },
+    storeCreatedEventsLoader() {
+      this.setEventsContracts();
+    },
+    contractsAddressesBySuitArray() {
+      this.getAllTransactionOfSuits()
+    },
+  },
+  methods: {
+    getAllTransactionOfSuits() {
+      for (let i = 0; i < this.filteredSuitAddressesArray.length; i++) {
+        if (
+          !localStorage.finalResultOrders ||
+          !JSON.parse(localStorage.finalResultOrders)[
+            this.filteredSuitAddressesArray[i]
+          ]
+        ) {
+          this.$store.dispatch(
+            "getTransactionOrders",
+            this.contractsAddressesBySuitArray[
+              this.filteredSuitAddressesArray[i]
+            ]
+          );
+        }
+        if (
+          !localStorage.finalResultEvents ||
+          !JSON.parse(localStorage.finalResultEvents)[
+            this.filteredSuitAddressesArray[i]
+          ]
+        ) {
+          this.$store.dispatch(
+            "getTransactionEvents",
+            this.contractsAddressesBySuitArray[
+              this.filteredSuitAddressesArray[i]
+            ]
+          );
+        }
       }
     },
-    methods: {
-      async getSuits(){
-        this.isLoading = true
-        await this.$store.dispatch('getCreatedSuits')
-        let currentTime = new Date().getTime()
-        const lastMonthDate = new Date().getTime() - 30 * 24 * 3600 * 1000
-        const lastThreeMonthDate = new Date().getTime() - 92 * 24 * 3600 * 1000
-        const lastYearDate = new Date().getTime() - 365 * 24 * 3600 * 1000
-        for (let i = 0; i < this.createdSuits.length; i++) {
-          const date = this.createdSuits[i].timeStamp * 1000
-          const transactionDate = new Date(date).getTime()
-          if (transactionDate <= currentTime && transactionDate >= lastMonthDate){
-            this.lastMonthSuits.push(this.createdSuits[i])
-          }
-          if (transactionDate <= currentTime && transactionDate >= lastThreeMonthDate){
-            this.lastThreeMonthSuits.push(this.createdSuits[i])
-          }
-          if (transactionDate <= currentTime && transactionDate >= lastYearDate){
-            this.lastYearSuits.push(this.createdSuits[i])
+    contains(arr, elem) {
+      for (let i = 0; i < arr.length; i++) {
+        if (arr[i] === elem) {
+          return true;
+        }
+      }
+      return false;
+    },
+    sortBy3MonthEvent() {
+      let arr = [];
+      let sorted = Object.keys(this.finalResultEvents)
+        .sort(
+          (b, a) =>
+            this.finalResultEvents[a][
+              this.contractsAddressesBySuitArray[a].eventAddress
+            ].length -
+            this.finalResultEvents[b][
+              this.contractsAddressesBySuitArray[b].eventAddress
+            ].length
+        )
+        .reduce(
+          (rslt, key) => rslt.set(key, this.finalResultEvents[key]),
+          new Map()
+        );
+      console.log(sorted);
+      for (let address of sorted.keys()) {
+        arr.push(address);
+      }
+      for (let i = 0; i < this.filteredSuitAddressesArray.length; i++) {
+        if (!this.contains(arr, this.filteredSuitAddressesArray[i])) {
+          arr.push(this.filteredSuitAddressesArray[i]);
+        }
+      }
+
+      // if (this.filteredSuitAddressesArray.length <= arr.length) {
+      this.filteredSuitAddressesArray = arr;
+      this.renderComponent = false;
+      this.$nextTick(() => {
+        // Add the component back in
+        this.renderComponent = true;
+      });
+      // }
+    },
+    sortByMonthEvent() {
+      let arr = [];
+      const lastMonthDate = new Date().getTime() - 30 * 24 * 3600 * 1000;
+
+      let sorted = Object.keys(this.finalResultEvents)
+        .sort(
+          (b, a) =>
+            this.finalResultEvents[a][
+              this.contractsAddressesBySuitArray[a].eventAddress
+            ].filter((item) => item.timeStamp * 1000 >= lastMonthDate).length -
+            this.finalResultEvents[b][
+              this.contractsAddressesBySuitArray[b].eventAddress
+            ].filter((item) => item.timeStamp * 1000 >= lastMonthDate).length
+        )
+        .reduce(
+          (rslt, key) => rslt.set(key, this.finalResultEvents[key]),
+          new Map()
+        );
+      console.log(sorted);
+      for (let address of sorted.keys()) {
+        arr.push(address);
+      }
+      for (let i = 0; i < this.filteredSuitAddressesArray.length; i++) {
+        if (!this.contains(arr, this.filteredSuitAddressesArray[i])) {
+          arr.push(this.filteredSuitAddressesArray[i]);
+        }
+      }
+
+      // if (this.filteredSuitAddressesArray.length <= arr.length) {
+      this.filteredSuitAddressesArray = arr;
+      this.renderComponent = false;
+      this.$nextTick(() => {
+        // Add the component back in
+        this.renderComponent = true;
+      });
+      // }
+    },
+    sortBy3MonthOrder() {
+      let arr = [];
+      let sorted = Object.keys(this.finalResultOrders)
+        .sort(
+          (b, a) =>
+            this.finalResultOrders[a][
+              this.contractsAddressesBySuitArray[a].orderAddress
+            ].length -
+            this.finalResultOrders[b][
+              this.contractsAddressesBySuitArray[b].orderAddress
+            ].length
+        )
+        .reduce(
+          (rslt, key) => rslt.set(key, this.finalResultOrders[key]),
+          new Map()
+        );
+      console.log(sorted);
+      for (let address of sorted.keys()) {
+        arr.push(address);
+      }
+      for (let i = 0; i < this.filteredSuitAddressesArray.length; i++) {
+        if (!this.contains(arr, this.filteredSuitAddressesArray[i])) {
+          arr.push(this.filteredSuitAddressesArray[i]);
+        }
+      }
+
+      // if (this.filteredSuitAddressesArray.length <= arr.length) {
+      this.filteredSuitAddressesArray = arr;
+      this.renderComponent = false;
+      this.$nextTick(() => {
+        // Add the component back in
+        this.renderComponent = true;
+      });
+      // }
+    },
+    sortByMonthOrder() {
+      let arr = [];
+      const lastMonthDate = new Date().getTime() - 30 * 24 * 3600 * 1000;
+
+      let sorted = Object.keys(this.finalResultOrders)
+        .sort(
+          (b, a) =>
+            this.finalResultOrders[a][
+              this.contractsAddressesBySuitArray[a].orderAddress
+            ].filter((item) => item.timeStamp * 1000 >= lastMonthDate).length -
+            this.finalResultOrders[b][
+              this.contractsAddressesBySuitArray[b].orderAddress
+            ].filter((item) => item.timeStamp * 1000 >= lastMonthDate).length
+        )
+        .reduce(
+          (rslt, key) => rslt.set(key, this.finalResultOrders[key]),
+          new Map()
+        );
+      console.log(sorted);
+      for (let address of sorted.keys()) {
+        arr.push(address);
+      }
+      for (let i = 0; i < this.filteredSuitAddressesArray.length; i++) {
+        if (!this.contains(arr, this.filteredSuitAddressesArray[i])) {
+          arr.push(this.filteredSuitAddressesArray[i]);
+        }
+      }
+
+      // if (this.filteredSuitAddressesArray.length <= arr.length) {
+      this.filteredSuitAddressesArray = arr;
+      this.renderComponent = false;
+      this.$nextTick(() => {
+        // Add the component back in
+        this.renderComponent = true;
+      });
+      // }
+    },
+    async setEventsContracts() {
+      let hashesCreatedOrders = [];
+      let suitAddressesArray = [];
+      const web3 = await checkAndInstantiateWeb3();
+
+      for (let i = 0; i < this.createdEvents.length; i++) {
+        const dataTransaction = await web3.eth.getTransactionReceipt(
+          this.createdEvents[i].hash
+        );
+        hashesCreatedOrders.push({
+          hash: this.createdEvents[i].hash,
+          date: this.createdEvents[i].date,
+        });
+        let addressesObject;
+        if (dataTransaction) {
+          for (let j = 0; j < dataTransaction.logs.length; j++) {
+            if (
+              dataTransaction.logs[j].topics[0] ===
+              "0xd127e714d98e23e914e6659df0aa28a12758da7c47219dbcc981d617de644b13"
+            ) {
+              const decodeSuitAddress = await web3.eth.abi.decodeParameters(
+                ["address", "address", "string"],
+                dataTransaction.logs[j].data
+              )[0];
+              const decodeEventAddress = await web3.eth.abi.decodeParameters(
+                ["address", "address", "string"],
+                dataTransaction.logs[j].data
+              )[1];
+              addressesObject = {
+                suitAddress: decodeSuitAddress,
+                eventAddress: decodeEventAddress,
+              };
+            }
           }
         }
-        this.isLoading = false
+        suitAddressesArray.push(addressesObject);
+      }
+      let arr = {};
+      for (let i = 0; i < this.allContractsBySuitsArray.length; i++) {
+        for (let j = 0; j < suitAddressesArray.length; j++) {
+          if (
+            this.allContractsBySuitsArray[i].suitAddress ===
+            suitAddressesArray[j].suitAddress
+          ) {
+            arr[this.allContractsBySuitsArray[i].suitAddress] = {
+              suitAddress: this.allContractsBySuitsArray[i].suitAddress,
+              orderAddress: this.allContractsBySuitsArray[i].orderAddress,
+              eventAddress: suitAddressesArray[j].eventAddress,
+            };
+            break;
+          }
+        }
+      }
+      console.log(arr);
+      this.contractsAddressesBySuitArray = arr;
+      localStorage.allSuitsContracts = JSON.stringify(arr);
+    },
+    async setOrdersContracts() {
+      let hashesCreatedOrders = [];
+      let suitAddressesArray = [];
+      let filteredAddressesSuits = [];
+      const web3 = await checkAndInstantiateWeb3();
+
+      for (let i = 0; i < this.createdOrders.length; i++) {
+        const dataTransaction = await web3.eth.getTransactionReceipt(
+          this.createdOrders[i].hash
+        );
+        hashesCreatedOrders.push({
+          hash: this.createdOrders[i].hash,
+          date: this.createdOrders[i].date,
+        });
+        let addressesObject;
+        if (dataTransaction) {
+          for (let j = 0; j < dataTransaction.logs.length; j++) {
+            if (
+              dataTransaction.logs[j].topics[0] ===
+              "0xd127e714d98e23e914e6659df0aa28a12758da7c47219dbcc981d617de644b13"
+            ) {
+              const decodeSuitAddress = await web3.eth.abi.decodeParameters(
+                ["address", "address", "string"],
+                dataTransaction.logs[j].data
+              )[0];
+              const decodeOrderAddress = await web3.eth.abi.decodeParameters(
+                ["address", "address", "string"],
+                dataTransaction.logs[j].data
+              )[1];
+              addressesObject = {
+                suitAddress: decodeSuitAddress,
+                orderAddress: decodeOrderAddress,
+              };
+              filteredAddressesSuits.push(decodeSuitAddress);
+            }
+          }
+        }
+        suitAddressesArray.push(addressesObject);
+      }
+      console.log(filteredAddressesSuits);
+      this.filteredSuitAddressesArray = filteredAddressesSuits;
+      localStorage.filteredAddressesSuits = JSON.stringify(
+        filteredAddressesSuits
+      );
+      this.allContractsBySuitsArray = suitAddressesArray;
+    },
+    culcSuitsByDate() {
+      let currentTime = new Date().getTime();
+      const lastMonthDate = new Date().getTime() - 30 * 24 * 3600 * 1000;
+      const lastThreeMonthDate = new Date().getTime() - 92 * 24 * 3600 * 1000;
+      const lastYearDate = new Date().getTime() - 365 * 24 * 3600 * 1000;
+      for (let i = 0; i < this.createdSuits.length; i++) {
+        const date = this.createdSuits[i].timeStamp * 1000;
+        const transactionDate = new Date(date).getTime();
+        if (
+          transactionDate <= currentTime &&
+          transactionDate >= lastMonthDate
+        ) {
+          this.lastMonthSuits.push(this.createdSuits[i]);
+        }
+        if (
+          transactionDate <= currentTime &&
+          transactionDate >= lastThreeMonthDate
+        ) {
+          this.lastThreeMonthSuits.push(this.createdSuits[i]);
+        }
+        if (transactionDate <= currentTime && transactionDate >= lastYearDate) {
+          this.lastYearSuits.push(this.createdSuits[i]);
+        }
       }
     },
-  mounted(){
-    this.getSuits()
-  }
+    async getSuits() {
+      if (!localStorage.createdSuits) {
+        await this.$store.dispatch("getCreatedSuits");
+      } else {
+        this.localLoader = true;
+        this.culcSuitsByDate();
+      }
+    },
+    async getAllSuitAddresses() {
+      let suitAddressesArray = [];
+      let hashesCreatedSuits = [];
+      const web3 = await checkAndInstantiateWeb3();
+
+      for (let i = 0; i < this.createdSuits.length; i++) {
+        const dataTransaction = await web3.eth.getTransactionReceipt(
+          this.createdSuits[i].hash
+        );
+        hashesCreatedSuits.push({
+          hash: this.createdSuits[i].hash,
+          date: this.createdSuits[i].date,
+        });
+        let suitAddress;
+        if (dataTransaction) {
+          for (let j = 0; j < dataTransaction.logs.length; j++) {
+            if (
+              dataTransaction.logs[j].topics[0] ===
+              "0xb1b338517bbceffa1a2fe820ed40bd898c364fb0cd3d98c304b8b84e71bd2838"
+            ) {
+              const decodeData = await web3.eth.abi.decodeParameters(
+                ["address", "address"],
+                dataTransaction.logs[j].data
+              )[0];
+              suitAddress = decodeData;
+            }
+          }
+        }
+        suitAddressesArray.push(suitAddress);
+      }
+      this.allSuitsAddressesArray = suitAddressesArray;
+      console.log(suitAddressesArray);
+    },
+    async getCreatedContractsBySuits() {
+      if (!localStorage.createdOrdersContract || +localStorage.timer + 24 * 3600 * 1000 < new Date().getTime()) {
+        await this.$store.dispatch("getCreatedOrders");
+      }
+      if (!localStorage.createdEventsContract || +localStorage.timer + 24 * 3600 * 1000 < new Date().getTime()) {
+        await this.$store.dispatch("getCreatedEvents");
+      }
+    },
+  },
+  async mounted() {
+    if (localStorage.createdSuits) {
+      this.localLoader = true;
+      this.culcSuitsByDate();
+    }
+    console.log(+localStorage.timer + 3600 * 1000 , new Date().getTime())
+    if (!localStorage.timer || +localStorage.timer + 24 * 3600 * 1000 < new Date().getTime()) {
+      localStorage.timer =  new Date().getTime()
+
+      await this.getSuits();
+      await this.getCreatedContractsBySuits();
+    }
+    if (localStorage.finalResultOrders){
+      this.getAllTransactionOfSuits()
+    }
+  },
 };
 </script>
 
@@ -262,7 +655,8 @@
 .loader {
   animation: rotate 2s linear infinite;
   margin: 20px auto;
-  filter: invert(0%) sepia(0%) saturate(7486%) hue-rotate(179deg) brightness(111%) contrast(100%);
+  filter: invert(0%) sepia(0%) saturate(7486%) hue-rotate(179deg)
+    brightness(111%) contrast(100%);
   animation-name: loader;
   @keyframes loader {
     from {
