@@ -31,7 +31,10 @@
     "vue-axios": "^3.2.4",
     "vue-router": "^3.5.1",
     "vue-template-compiler": "^2.6.11",
-    "vuex": "^3.6.2"
+    "vuex": "^3.6.2",
+    "web3": "1.2.11",
+    "web3-utils": "^1.7.4",
+    "web3modal": "^1.9.3"
   },
   "eslintConfig": {
     "root": true,
