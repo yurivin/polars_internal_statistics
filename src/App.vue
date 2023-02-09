@@ -1,16 +1,16 @@
 <template>
   <div id="app">
     <router-view/>
-    <notifications/>
+<!--    <notifications/>-->
   </div>
 </template>
 
 <script>
-  import Notifications from 'vue-notification'
+  // import Notifications from 'vue-notification'
 export default {
   name: 'App',
   components: {
-    Notifications
+    // Notifications
   },
   // created() {
   //   this.$store.dispatch('initFetchTransaction')
