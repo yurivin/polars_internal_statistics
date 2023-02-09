@@ -1,8 +1,9 @@
 <template>
   <div class="item">
     <div class="item_wrapper">
-      <div class="col-6 volatility">
+      <div class="col-6 volatility d-flex justify-content-between" style="padding-left: 30px">
         <div v-if="row">{{ row }}</div>
+        <router-link style="text-decoration: none" :to="`/statistic/orders/${row}`"><Button text="Details" type="small"></Button></router-link>
       </div>
       <div class="col volatility">
         <div v-if="itemObject">{{ filteredByLastMonth.length }}</div>
@@ -23,7 +24,9 @@
         </div>
       </div>
       <div class="col volatility">
-        <div v-if="eventItemObject">{{ filteredByLastThreeMonthEvents.length }}</div>
+        <div v-if="eventItemObject">
+          {{ filteredByLastThreeMonthEvents.length }}
+        </div>
         <div v-else class="loader">
           <img src="@/assets/images/loader.svg" alt="Loading" />
         </div>
@@ -34,8 +37,12 @@
 
 <script>
 import { mapGetters } from "vuex";
+import Button from "@/components/Button"
 
 export default {
+  components:{
+    Button
+  },
   props: {
     row: String,
     itemObject: Object,
@@ -48,13 +55,13 @@ export default {
     filteredByLastMonthEvents() {
       const lastMonthDate = new Date().getTime() - 30 * 24 * 3600 * 1000;
       return this.eventItemObject[this.contractEvent].filter(
-              (item) => item.timeStamp * 1000 >= lastMonthDate
+        (item) => item.timeStamp * 1000 >= lastMonthDate
       );
     },
     filteredByLastThreeMonthEvents() {
       const lastThreeMonthDate = new Date().getTime() - 92 * 24 * 3600 * 1000;
       return this.eventItemObject[this.contractEvent].filter(
-              (item) => item.timeStamp * 1000 >= lastThreeMonthDate
+        (item) => item.timeStamp * 1000 >= lastThreeMonthDate
       );
     },
     filteredByLastMonth() {

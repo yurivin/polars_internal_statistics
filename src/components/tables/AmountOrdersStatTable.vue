@@ -77,9 +77,6 @@ export default {
       eventsThreeMonth: false,
     };
   },
-  mounted() {
-    console.log(this.ordersOneMonth)
-  },
   // watch: {
   //   rows() {
   //     this.renderComponent = false;

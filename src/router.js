@@ -11,5 +11,20 @@ export default new Router({
             name: 'suit-statistic',
             component: () => import ('./views/suit-statistic')
         },
+        {
+            path: '/suit-statistic',
+            name: 'suit-statistic',
+            component: () => import ('./views/suit-statistic')
+        },
+        {
+            path: '/statistic/orders/:id',
+            name: 'orders',
+            component: () => import ('./views/statistic/orders')
+        },
+        {
+            path: '/statistic/price/:id',
+            name: 'orders',
+            component: () => import ('./views/statistic/price')
+        },
     ]
 })

@@ -9,8 +9,8 @@ import {
   PENDING_ORDERS_FACTORY_ADDRESS,
   EVENT_LIFE_CYCLE_FACTORY_ADDRESS,
 } from "@/util/constants/scanConfigs";
-// import SUITE_ABI from '@/util/constants/contractsABI/suite2.json'
-// import ContractInstance from '@/util/ContractInstance'
+import COLLATERAL_ABI from '@/util/constants/contractsABI/usdcToken.json'
+import ContractInstance from '@/util/ContractInstance'
 
 // import { debounce } from "@/util/helpers";
 
@@ -44,121 +44,30 @@ export default new Vuex.Store({
       ? JSON.parse(localStorage.finalResultEvents)
       : null,
     canSendRequest: true,
+    collateralContract: localStorage.collateralToken ? JSON.parse(localStorage.collateralToken) : null,
   },
   actions: {
-    // async initFetchTransaction({ commit }, timer) {
-    //   const fetch = debounce(
-    //     async ({ type, addresses }) => {
-    //       if (type === "CreatedSuits") {
-    //         try {
-    //           let {
-    //             data: { result: polygonResult },
-    //           } = await axios.get(
-    //             `${DEFAULT_SCAN_LINK[LOCATION_NETWORK_ID]}?module=account&action=txlist&address=${SUITE_FACTORY_ADDRESS[LOCATION_NETWORK_ID]}&startblock=1&endblock=99999999&sort=desc`
-    //           );
-    //           polygonResult = polygonResult.filter(
-    //             (item) =>
-    //               item.methodId === "0xa58bb472" && +item.txreceipt_status
-    //           );
-    //           commit("setCreatedSuits", polygonResult);
-    //           commit("setLoader", true);
-    //           setTimeout(() => commit("setPermissionToRequest", true), timeOutApi);
-    //         } catch (error) {
-    //           console.log(error);
-    //         }
-    //       }
-    //       if (type === "CreatedOrdersContract") {
-    //         try {
-    //           let {
-    //             data: { result: polygonResult },
-    //           } = await axios.get(
-    //             `${DEFAULT_SCAN_LINK[LOCATION_NETWORK_ID]}?module=account&action=txlist&address=${PENDING_ORDERS_FACTORY_ADDRESS[LOCATION_NETWORK_ID]}&startblock=1&endblock=99999999&sort=desc`
-    //           );
-    //           polygonResult = polygonResult.filter(
-    //             (item) =>
-    //               item.methodId === "0xe2d73ccd" && +item.txreceipt_status
-    //           );
-    //           commit("setCreatedOrdersContract", polygonResult);
-    //           commit("setCreatedOrdersLoader", true);
-    //           setTimeout(() => commit("setPermissionToRequest", true), timeOutApi);
-    //
-    //           console.log(polygonResult);
-    //         } catch (error) {
-    //           console.log(error);
-    //         }
-    //       }
-    //       if (type === "CreatedEventsContract") {
-    //         try {
-    //           let {
-    //             data: { result: polygonResult },
-    //           } = await axios.get(
-    //             `${DEFAULT_SCAN_LINK[LOCATION_NETWORK_ID]}?module=account&action=txlist&address=${EVENT_LIFE_CYCLE_FACTORY_ADDRESS[LOCATION_NETWORK_ID]}&startblock=1&endblock=99999999&sort=desc`
-    //           );
-    //           polygonResult = polygonResult.filter(
-    //             (item) =>
-    //               item.methodId === "0x3c46c43c" && +item.txreceipt_status
-    //           );
-    //           commit("setCreatedEventsContract", polygonResult);
-    //           commit("setCreatedEventsLoader", true);
-    //           setTimeout(() => commit("setPermissionToRequest", true), timeOutApi);
-    //
-    //           console.log(polygonResult);
-    //         } catch (error) {
-    //           console.log(error);
-    //         }
-    //       }
-    //       if (type === "AllOrders") {
-    //         let object = {
-    //           [addresses.suitAddress]: { [addresses.orderAddress]: {} },
-    //         };
-    //         try {
-    //           let {
-    //             data: { result: polygonResult },
-    //           } = await axios.get(
-    //             `${DEFAULT_SCAN_LINK[LOCATION_NETWORK_ID]}?module=account&action=txlist&address=${addresses.orderAddress}&startblock=1&endblock=99999999&sort=desc`
-    //           );
-    //           polygonResult = polygonResult.filter(
-    //             (item) =>
-    //               item.methodId === "0xe44b2892" && +item.txreceipt_status
-    //           );
-    //           object[addresses.suitAddress][addresses.orderAddress] =
-    //             polygonResult;
-    //           // console.log(object)
-    //           commit("setNumbersOfTransOrderMade", object);
-    //           setTimeout(() => commit("setPermissionToRequest", true), timeOutApi);
-    //         } catch (error) {
-    //           console.log(error);
-    //         }
-    //       }
-    //       if (type === "AllEvents") {
-    //         let object = {
-    //           [addresses.suitAddress]: { [addresses.eventAddress]: {} },
-    //         };
-    //         try {
-    //           let {
-    //             data: { result: polygonResult },
-    //           } = await axios.get(
-    //             `${DEFAULT_SCAN_LINK[LOCATION_NETWORK_ID]}?module=account&action=txlist&address=${addresses.eventAddress}&startblock=1&endblock=99999999&sort=desc`
-    //           );
-    //           polygonResult = polygonResult.filter(
-    //             (item) =>
-    //               item.methodId === "0xe2fd38e9" && +item.txreceipt_status
-    //           );
-    //           object[addresses.suitAddress][addresses.eventAddress] =
-    //             polygonResult;
-    //           // console.log(object)
-    //           commit("setNumbersOfTransEventStartMade", object);
-    //           setTimeout(() => commit("setPermissionToRequest", true), timeOutApi);
-    //         } catch (error) {
-    //           console.log(error);
-    //         }
-    //       }
-    //     },
-    //     timer === 0 ? timer : timeOutApi
-    //   );
-    //   commit("setFetchTransaction", fetch);
-    // },
+    async getCollateralContract({commit},collateralTokenAddress){
+        let collateralObject = {
+          [collateralTokenAddress]: {decimals: '', symbol: ''}
+        }
 
+        if (localStorage.collateralToken) {
+          collateralObject = JSON.parse(localStorage.collateralToken)
+          collateralObject[collateralTokenAddress] = {decimals: '', symbol: ''}
+        }
+        const collateralToken = new ContractInstance(
+            COLLATERAL_ABI,
+            collateralTokenAddress
+        )
+        const decimals = (await collateralToken.decimals()).data
+        const symbol = (await collateralToken.symbol()).data
+        collateralObject[collateralTokenAddress].decimals = decimals
+        collateralObject[collateralTokenAddress].symbol = symbol
+        localStorage.collateralToken = JSON.stringify(collateralObject)
+        // let contractObject = {decimals,symbol}
+        commit("setCollateralContract", collateralObject)
+    },
     async getCreatedSuits({ commit }) {
       // await state.fetch({ type: "CreatedSuits" });
       try {
@@ -175,6 +84,7 @@ export default new Vuex.Store({
         setTimeout(() => commit("setPermissionToRequest", true), timeOutApi);
       } catch (error) {
         console.log(error);
+
       }
     },
     async getCreatedOrders({ commit }) {
@@ -191,8 +101,6 @@ export default new Vuex.Store({
         commit("setCreatedOrdersContract", polygonResult);
         commit("setCreatedOrdersLoader", true);
         setTimeout(() => commit("setPermissionToRequest", true), timeOutApi);
-
-        console.log(polygonResult);
       } catch (error) {
         console.log(error);
       }
@@ -211,15 +119,11 @@ export default new Vuex.Store({
         commit("setCreatedEventsContract", polygonResult);
         commit("setCreatedEventsLoader", true);
         setTimeout(() => commit("setPermissionToRequest", true), timeOutApi);
-
-        console.log(polygonResult);
       } catch (error) {
         console.log(error);
       }
     },
     async getTransactionOrders({ commit }, addresses) {
-      // await state.fetch({ type: "AllOrders", addresses });
-      console.log(addresses)
       let object = {
         [addresses.suitAddress]: { [addresses.orderAddress]: {} },
       };
@@ -233,7 +137,6 @@ export default new Vuex.Store({
           (item) => item.methodId === "0xe44b2892" && +item.txreceipt_status
         );
         object[addresses.suitAddress][addresses.orderAddress] = polygonResult;
-        // console.log(object)
         commit("setNumbersOfTransOrderMade", object);
         setTimeout(() => commit("setPermissionToRequest", true), timeOutApi);
       } catch (error) {
@@ -252,8 +155,9 @@ export default new Vuex.Store({
           `${DEFAULT_SCAN_LINK[LOCATION_NETWORK_ID]}?module=account&action=txlist&address=${addresses.eventAddress}&startblock=1&endblock=99999999&sort=desc`
         );
         polygonResult = polygonResult.filter(
-          (item) => item.methodId === "0xe2fd38e9" && +item.txreceipt_status
+          (item) => (item.methodId === "0xe2fd38e9" || item.methodId === "0xd24df289") && +item.txreceipt_status
         );
+
         object[addresses.suitAddress][addresses.eventAddress] = polygonResult;
         // console.log(object)
         commit("setNumbersOfTransEventStartMade", object);
@@ -264,6 +168,9 @@ export default new Vuex.Store({
     },
   },
   mutations: {
+    setCollateralContract(state, payload){
+      state.collateralContract = payload
+    },
     setPermissionToRequest(state, payload) {
       state.canSendRequest = payload;
     },
@@ -281,7 +188,6 @@ export default new Vuex.Store({
       }
       state.finalResultEvents = obj;
       localStorage.finalResultEvents = JSON.stringify(obj);
-      console.log(obj);
     },
     setNumbersOfTransOrderMade(state, payload) {
       state.numbersOfTransOrderMade.push(payload);
@@ -356,6 +262,9 @@ export default new Vuex.Store({
     getPermissionToRequest(state) {
       return state.canSendRequest;
     },
+    getCollateralContract(state) {
+      return state.collateralContract
+    }
   },
   modules: {},
 });

@@ -6,10 +6,15 @@ import VueAxios from "vue-axios";
 import "bootstrap/dist/css/bootstrap.min.css"
 import "bootstrap-vue/dist/bootstrap-vue.css"
 import store from './store'
+import { Datetime } from 'vue-datetime'
+import { BootstrapVue } from 'bootstrap-vue'
+import Notifications from 'vue-notification'
+// You need a specific loader for CSS files
+import 'vue-datetime/dist/vue-datetime.css'
 
 
+Vue.use(VueAxios,axios,Datetime,BootstrapVue, Notifications)
 
-Vue.use(VueAxios,axios)
 
 
 

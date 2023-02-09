@@ -62,6 +62,8 @@ export default {
         ? JSON.parse(localStorage.allSuitsContracts)
         : {},
       renderComponent: true,
+      isReadyOrders: false,
+      isReadyEvents: false
     };
   },
   computed: {
@@ -78,6 +80,12 @@ export default {
     }),
   },
   watch: {
+    isReadyEvents(){
+      this.getCreatedEventsBySuits();
+    },
+    isReadyOrders(){
+      this.getCreatedOrdersBySuits();
+    },
     storeLoader() {
       this.culcSuitsByDate();
     },
@@ -93,29 +101,29 @@ export default {
     contractsAddressesBySuitArray() {
       this.getAllTransactionOfSuits();
     },
-    getPermissionToRequest() {
+    async getPermissionToRequest() {
       if (
         this.getPermissionToRequest &&
         !this.storeLoader &&
         !localStorage.createdSuits
       ) {
-        this.getSuits();
+        await this.getSuits();
       }
       if (this.getPermissionToRequest && !this.storeCreatedOrdersLoader) {
-        this.getCreatedOrdersBySuits();
+       await this.getCreatedOrdersBySuits();
       }
       if (
         this.getPermissionToRequest &&
         this.storeCreatedOrdersLoader &&
         !this.storeCreatedEventsLoader
       ) {
-        this.getCreatedEventsBySuits();
+        await this.getCreatedEventsBySuits();
       }
       if (
         this.getPermissionToRequest &&
         this.contractsAddressesBySuitArray[this.filteredSuitAddressesArray[0]]
       ) {
-        this.getAllTransactionOfSuits();
+        await this.getAllTransactionOfSuits();
       }
     },
   },
@@ -129,7 +137,6 @@ export default {
               this.filteredSuitAddressesArray[i]
             ])
         ) {
-          console.log(this.contractsAddressesBySuitArray);
           this.$store.commit("setPermissionToRequest", false);
 
           this.$store.dispatch(
@@ -181,7 +188,6 @@ export default {
           (rslt, key) => rslt.set(key, this.finalResultEvents[key]),
           new Map()
         );
-      console.log(sorted);
       for (let address of sorted.keys()) {
         arr.push(address);
       }
@@ -218,7 +224,6 @@ export default {
           (rslt, key) => rslt.set(key, this.finalResultEvents[key]),
           new Map()
         );
-      console.log(sorted);
       for (let address of sorted.keys()) {
         arr.push(address);
       }
@@ -253,7 +258,6 @@ export default {
           (rslt, key) => rslt.set(key, this.finalResultOrders[key]),
           new Map()
         );
-      console.log(sorted);
       for (let address of sorted.keys()) {
         arr.push(address);
       }
@@ -290,7 +294,6 @@ export default {
           (rslt, key) => rslt.set(key, this.finalResultOrders[key]),
           new Map()
         );
-      console.log(sorted);
       for (let address of sorted.keys()) {
         arr.push(address);
       }
@@ -356,15 +359,17 @@ export default {
             arr[this.allContractsBySuitsArray[i].suitAddress] = {
               suitAddress: this.allContractsBySuitsArray[i].suitAddress,
               orderAddress: this.allContractsBySuitsArray[i].orderAddress,
+              collateralToken: this.allContractsBySuitsArray[i].collateralToken,
               eventAddress: suitAddressesArray[j].eventAddress,
             };
             break;
           }
         }
       }
-      console.log(arr);
       this.contractsAddressesBySuitArray = arr;
       localStorage.allSuitsContracts = JSON.stringify(arr);
+      this.isReadyEvents = true
+
     },
     async setOrdersContracts() {
       let hashesCreatedOrders = [];
@@ -376,10 +381,39 @@ export default {
         const dataTransaction = await web3.eth.getTransactionReceipt(
           this.createdOrders[i].hash
         );
+
         hashesCreatedOrders.push({
           hash: this.createdOrders[i].hash,
           date: this.createdOrders[i].date,
         });
+        let decodeCollateralAddress;
+        for (let j = 0; j < this.createdSuits.length; j++) {
+          const dataTransaction = await web3.eth.getTransactionReceipt(
+                  this.createdSuits[j].hash
+          );
+          let decodeData = await web3.eth.abi.decodeParameters(
+            ["address"],
+            this.createdOrders[i].input.substr(10)
+          )[0];
+          let decodeSuitAddress;
+          for (let k = 0; k < dataTransaction.logs.length; k++) {
+            if (
+              dataTransaction.logs[k].topics[0] ===
+              "0x13e0e1a18ac52721beead955fbb43c6d8a06b370ebf65012590dfc740e08dbf4"
+            ) {
+              decodeSuitAddress = await web3.eth.abi.decodeParameters(
+                ["string","address", "address"],
+                dataTransaction.logs[k].data
+              )[1];
+            }
+          }
+          if (decodeData && decodeData === decodeSuitAddress) {
+            decodeCollateralAddress = await web3.eth.abi.decodeParameters(
+              ["string", "address"],
+              this.createdSuits[j].input.substr(10)
+            )[1];
+          }
+        }
         let addressesObject;
         if (dataTransaction) {
           for (let j = 0; j < dataTransaction.logs.length; j++) {
@@ -398,25 +432,31 @@ export default {
               addressesObject = {
                 suitAddress: decodeSuitAddress,
                 orderAddress: decodeOrderAddress,
+                collateralToken: decodeCollateralAddress,
               };
               filteredAddressesSuits.push(decodeSuitAddress);
             }
           }
         }
         suitAddressesArray.push(addressesObject);
+
       }
-      console.log(filteredAddressesSuits);
       this.filteredSuitAddressesArray = filteredAddressesSuits;
       localStorage.filteredAddressesSuits = JSON.stringify(
         filteredAddressesSuits
       );
       this.allContractsBySuitsArray = suitAddressesArray;
+      this.isReadyOrders = true
+      await this.setEventsContracts();
     },
     culcSuitsByDate() {
       let currentTime = new Date().getTime();
       const lastMonthDate = new Date().getTime() - 30 * 24 * 3600 * 1000;
       const lastThreeMonthDate = new Date().getTime() - 92 * 24 * 3600 * 1000;
       const lastYearDate = new Date().getTime() - 365 * 24 * 3600 * 1000;
+      let lastMonthSuits = []
+      let lastThreeMonthSuits = []
+      let lastYearSuits = []
       for (let i = 0; i < this.createdSuits.length; i++) {
         const date = this.createdSuits[i].timeStamp * 1000;
         const transactionDate = new Date(date).getTime();
@@ -424,16 +464,19 @@ export default {
           transactionDate <= currentTime &&
           transactionDate >= lastMonthDate
         ) {
-          this.lastMonthSuits.push(this.createdSuits[i]);
+          lastMonthSuits.push(this.createdSuits[i]);
+          this.lastMonthSuits = lastMonthSuits
         }
         if (
           transactionDate <= currentTime &&
           transactionDate >= lastThreeMonthDate
         ) {
-          this.lastThreeMonthSuits.push(this.createdSuits[i]);
+          lastThreeMonthSuits.push(this.createdSuits[i]);
+          this.lastThreeMonthSuits = lastThreeMonthSuits
         }
         if (transactionDate <= currentTime && transactionDate >= lastYearDate) {
-          this.lastYearSuits.push(this.createdSuits[i]);
+          lastYearSuits.push(this.createdSuits[i]);
+          this.lastYearSuits = lastYearSuits
         }
       }
     },
@@ -479,7 +522,6 @@ export default {
         suitAddressesArray.push(suitAddress);
       }
       this.allSuitsAddressesArray = suitAddressesArray;
-      console.log(suitAddressesArray);
     },
     async getCreatedOrdersBySuits() {
       if (
@@ -489,6 +531,7 @@ export default {
       ) {
         this.$store.commit("setPermissionToRequest", false);
         await this.$store.dispatch("getCreatedOrders");
+        await this.getCreatedEventsBySuits()
       }
     },
     async getCreatedEventsBySuits() {
@@ -507,12 +550,10 @@ export default {
       this.localLoader = true;
       this.culcSuitsByDate();
     }
-    console.log(+localStorage.timer + 3600 * 1000, new Date().getTime());
     if (
       !localStorage.timer ||
       +localStorage.timer + 24 * 3600 * 1000 < new Date().getTime()
     ) {
-      localStorage.timer = new Date().getTime();
 
       await this.getSuits();
       await this.getCreatedOrdersBySuits();
