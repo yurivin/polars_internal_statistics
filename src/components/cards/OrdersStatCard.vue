@@ -367,12 +367,6 @@ export default {
           )[this.suitAddress];
         }
         this.loadingEvents = false;
-      } else {
-        this.$notify.error({
-          title: 'Error',
-          message: 'RPC Error',
-          maxWidth: 400,
-        })
       }
     },
     async getValueOrdersTransaction() {

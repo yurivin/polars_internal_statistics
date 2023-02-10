@@ -103,184 +103,186 @@ export default {
       }
     },
     async getEventEndTransaction() {
-      let arrayEvent = []
-      this.periodHashes = this.allHashes
-      this.eventEndArray = this.getTransData
-        ? JSON.parse(this.getTransData)
-        : { [this.suitAddress]: [] }
-      const web3 = await checkAndInstantiateWeb3()
-      this.loading = true
-      this.hashes[this.suitAddress] = this.allHashes
-      let hashes = this.getHashesArray
-        ? JSON.parse(this.getHashesArray)
-        : { [this.suitAddress]: [] }
-      if (!hashes[this.suitAddress]) {
-        hashes[this.suitAddress] = []
-      }
-      if (!this.eventEndArray[this.suitAddress]) {
-        this.eventEndArray[this.suitAddress] = []
-      }
-      if (!this.getHashesArray || !hashes[this.suitAddress].length) {
-        if (
-          !this.getTransData ||
-          !this.eventEndArray[this.suitAddress].length
-        ) {
-          for (
-            let i = 0;
-            i < this.hashes[this.suitAddress].length;
-            i++
+      if (this.collateralContract[this.collateralAddress]) {
+        let arrayEvent = []
+        this.periodHashes = this.allHashes
+        this.eventEndArray = this.getTransData
+                ? JSON.parse(this.getTransData)
+                : {[this.suitAddress]: []}
+        const web3 = await checkAndInstantiateWeb3()
+        this.loading = true
+        this.hashes[this.suitAddress] = this.allHashes
+        let hashes = this.getHashesArray
+                ? JSON.parse(this.getHashesArray)
+                : {[this.suitAddress]: []}
+        if (!hashes[this.suitAddress]) {
+          hashes[this.suitAddress] = []
+        }
+        if (!this.eventEndArray[this.suitAddress]) {
+          this.eventEndArray[this.suitAddress] = []
+        }
+        if (!this.getHashesArray || !hashes[this.suitAddress].length) {
+          if (
+                  !this.getTransData ||
+                  !this.eventEndArray[this.suitAddress].length
           ) {
-            let priceObj
-            const dataTransaction = await web3.eth.getTransactionReceipt(
-              this.hashes[this.suitAddress][i].hash
-            )
-            hashes[this.suitAddress].push({
-              hash: this.hashes[this.suitAddress][i].hash,
-              date: this.hashes[this.suitAddress][i].date,
-            })
-            let decodeTotalPrice
-            for (let j = 0; j < dataTransaction.logs.length; j++) {
-              if (
-                dataTransaction.logs[j].topics[0] ===
-                '0x414abacbc2b88d315e7f44e0b1498f61b18c51906c5ba4f0e8afe4c12cef9cdd'
-              ) {
-                decodeTotalPrice = await web3.eth.abi.decodeParameters(
-                  ['uint256'],
-                  dataTransaction.logs[j].data
-                )[0]
-              }
-            }
-            if (decodeTotalPrice) {
-              priceObj = {
-                price: decodeTotalPrice / Math.pow(10, this.collateralContract[this.collateralAddress].decimals),
+            for (
+                    let i = 0;
+                    i < this.hashes[this.suitAddress].length;
+                    i++
+            ) {
+              let priceObj
+              const dataTransaction = await web3.eth.getTransactionReceipt(
+                      this.hashes[this.suitAddress][i].hash
+              )
+              hashes[this.suitAddress].push({
+                hash: this.hashes[this.suitAddress][i].hash,
                 date: this.hashes[this.suitAddress][i].date,
+              })
+              let decodeTotalPrice
+              for (let j = 0; j < dataTransaction.logs.length; j++) {
+                if (
+                        dataTransaction.logs[j].topics[0] ===
+                        '0x414abacbc2b88d315e7f44e0b1498f61b18c51906c5ba4f0e8afe4c12cef9cdd'
+                ) {
+                  decodeTotalPrice = await web3.eth.abi.decodeParameters(
+                          ['uint256'],
+                          dataTransaction.logs[j].data
+                  )[0]
+                }
               }
-              arrayEvent.push(priceObj)
+              if (decodeTotalPrice) {
+                priceObj = {
+                  price: decodeTotalPrice / Math.pow(10, this.collateralContract[this.collateralAddress].decimals),
+                  date: this.hashes[this.suitAddress][i].date,
+                }
+                arrayEvent.push(priceObj)
+              }
+              // if (dataTransaction.logs.length >= 26) {
+              //   const decodeTotalPrice = await web3.eth.abi.decodeParameters(
+              //     ['uint256'],
+              //     dataTransaction.logs[24].data
+              //   )[0]
+              //   priceObj = {
+              //     price: decodeTotalPrice / Math.pow(10, this.collateralContract.decimals),
+              //     date: this.hashes[this.suitAddress][i].date,
+              //   }
+              //   arrayEvent.push(priceObj)
+              // }
+              this.count += 1
             }
-            // if (dataTransaction.logs.length >= 26) {
-            //   const decodeTotalPrice = await web3.eth.abi.decodeParameters(
-            //     ['uint256'],
-            //     dataTransaction.logs[24].data
-            //   )[0]
-            //   priceObj = {
-            //     price: decodeTotalPrice / Math.pow(10, this.collateralContract.decimals),
-            //     date: this.hashes[this.suitAddress][i].date,
-            //   }
-            //   arrayEvent.push(priceObj)
+            this.eventEndArray[this.suitAddress] = arrayEvent
+            sessionStorage.customData = JSON.stringify(this.eventEndArray)
+            sessionStorage.hashesCustom = JSON.stringify(hashes)
             // }
-            this.count += 1
+          } else {
+            if (this.custom) {
+              this.eventEndArray[this.suitAddress] = []
+            } else {
+              this.eventEndArray[this.suitAddress] = JSON.parse(
+                      this.getTransData
+              )[this.suitAddress]
+              this.eventEndArray[this.suitAddress] = this.eventEndArray[
+                      this.suitAddress
+                      ].sort((a, b) => new Date(b.date) - new Date(a.date))
+            }
           }
-          this.eventEndArray[this.suitAddress] = arrayEvent
+        } else if (
+                this.getHashesArray &&
+                this.getHashesArray !==
+                JSON.stringify(this.hashes[this.suitAddress])
+        ) {
+          this.eventEndArray[this.suitAddress] = this.getTransData
+                  ? JSON.parse(this.getTransData)[this.suitAddress]
+                  : this.eventEndArray[this.suitAddress]
+          this.eventEndArray[this.suitAddress] = this.eventEndArray[
+                  this.suitAddress
+                  ].sort((a, b) => new Date(b.date) - new Date(a.date))
+          let arr = []
+          for (
+                  let i = 0;
+                  i < this.hashes[this.suitAddress].length;
+                  i++
+          ) {
+            arr.push(
+                    this.containsObj(
+                            JSON.parse(this.getHashesArray)[this.suitAddress],
+                            this.hashes[this.suitAddress][i]
+                    )
+            )
+          }
+          arr = arr.filter((item) => item !== true)
+          this.periodHashes = arr
+          hashes[this.suitAddress] = JSON.parse(this.getHashesArray)[
+                  this.suitAddress
+                  ]
+          this.eventEndArray[this.suitAddress] = JSON.parse(
+                  this.getTransData
+          )[this.suitAddress]
+          for (
+                  let i = 0;
+                  i < this.hashes[this.suitAddress].length;
+                  i++
+          ) {
+            if (
+                    !this.contains(
+                            JSON.parse(this.getHashesArray)[this.suitAddress],
+                            this.hashes[this.suitAddress][i]
+                    )
+            ) {
+              hashes[this.suitAddress].push(
+                      this.hashes[this.suitAddress][i]
+              )
+              this.count += 1
+              let priceObj
+              const dataTransaction = await web3.eth.getTransactionReceipt(
+                      this.hashes[this.suitAddress][i].hash
+              )
+              let decodeTotalPrice
+              for (let j = 0; j < dataTransaction.logs.length; j++) {
+                if (
+                        dataTransaction.logs[j].topics[0] ===
+                        '0x414abacbc2b88d315e7f44e0b1498f61b18c51906c5ba4f0e8afe4c12cef9cdd'
+                ) {
+                  decodeTotalPrice = await web3.eth.abi.decodeParameters(
+                          ['uint256'],
+                          dataTransaction.logs[j].data
+                  )[0]
+                }
+              }
+              if (decodeTotalPrice) {
+                priceObj = {
+                  price: decodeTotalPrice / Math.pow(10, this.collateralContract[this.collateralAddress].decimals),
+                  date: this.hashes[this.suitAddress][i].date,
+                }
+                this.eventEndArray[this.suitAddress].push(priceObj)
+              }
+            }
+          }
+          this.eventEndArray[this.suitAddress] = this.eventEndArray[
+                  this.suitAddress
+                  ].sort((a, b) => new Date(b.date) - new Date(a.date))
           sessionStorage.customData = JSON.stringify(this.eventEndArray)
           sessionStorage.hashesCustom = JSON.stringify(hashes)
-          // }
-        } else {
-          if (this.custom) {
-            this.eventEndArray[this.suitAddress] = []
-          } else {
-            this.eventEndArray[this.suitAddress] = JSON.parse(
-              this.getTransData
-            )[this.suitAddress]
-            this.eventEndArray[this.suitAddress] = this.eventEndArray[
-              this.suitAddress
-            ].sort((a, b) => new Date(b.date) - new Date(a.date))
-          }
-        }
-      } else if (
-        this.getHashesArray &&
-        this.getHashesArray !==
-          JSON.stringify(this.hashes[this.suitAddress])
-      ) {
-        this.eventEndArray[this.suitAddress] = this.getTransData
-          ? JSON.parse(this.getTransData)[this.suitAddress]
-          : this.eventEndArray[this.suitAddress]
-        this.eventEndArray[this.suitAddress] = this.eventEndArray[
-          this.suitAddress
-        ].sort((a, b) => new Date(b.date) - new Date(a.date))
-        let arr = []
-        for (
-          let i = 0;
-          i < this.hashes[this.suitAddress].length;
-          i++
-        ) {
-          arr.push(
-            this.containsObj(
-              JSON.parse(this.getHashesArray)[this.suitAddress],
-              this.hashes[this.suitAddress][i]
-            )
+          this.eventEndArray[this.suitAddress] = this.eventEndArray[
+                  this.suitAddress
+                  ].filter(
+                  (item) =>
+                          new Date(item.date).getTime() >=
+                          new Date(this.sinceDate).getTime() &&
+                          new Date(item.date).getTime() <= new Date(this.forDate).getTime()
           )
+        } else {
+          this.eventEndArray[this.suitAddress] = JSON.parse(
+                  this.getTransData
+          )[this.suitAddress]
         }
-        arr = arr.filter((item) => item !== true)
-        this.periodHashes = arr
-        hashes[this.suitAddress] = JSON.parse(this.getHashesArray)[
-          this.suitAddress
-        ]
-        this.eventEndArray[this.suitAddress] = JSON.parse(
-          this.getTransData
-        )[this.suitAddress]
-        for (
-          let i = 0;
-          i < this.hashes[this.suitAddress].length;
-          i++
-        ) {
-          if (
-            !this.contains(
-              JSON.parse(this.getHashesArray)[this.suitAddress],
-              this.hashes[this.suitAddress][i]
-            )
-          ) {
-            hashes[this.suitAddress].push(
-              this.hashes[this.suitAddress][i]
-            )
-            this.count += 1
-            let priceObj
-            const dataTransaction = await web3.eth.getTransactionReceipt(
-              this.hashes[this.suitAddress][i].hash
-            )
-            let decodeTotalPrice
-            for (let j = 0; j < dataTransaction.logs.length; j++) {
-              if (
-                dataTransaction.logs[j].topics[0] ===
-                '0x414abacbc2b88d315e7f44e0b1498f61b18c51906c5ba4f0e8afe4c12cef9cdd'
-              ) {
-                decodeTotalPrice = await web3.eth.abi.decodeParameters(
-                  ['uint256'],
-                  dataTransaction.logs[j].data
-                )[0]
-              }
-            }
-            if (decodeTotalPrice) {
-              priceObj = {
-                price: decodeTotalPrice / Math.pow(10, this.collateralContract[this.collateralAddress].decimals),
-                date: this.hashes[this.suitAddress][i].date,
-              }
-              this.eventEndArray[this.suitAddress].push(priceObj)
-            }
-          }
-        }
-        this.eventEndArray[this.suitAddress] = this.eventEndArray[
-          this.suitAddress
-        ].sort((a, b) => new Date(b.date) - new Date(a.date))
-        sessionStorage.customData = JSON.stringify(this.eventEndArray)
-        sessionStorage.hashesCustom = JSON.stringify(hashes)
-        this.eventEndArray[this.suitAddress] = this.eventEndArray[
-          this.suitAddress
-        ].filter(
-          (item) =>
-            new Date(item.date).getTime() >=
-              new Date(this.sinceDate).getTime() &&
-            new Date(item.date).getTime() <= new Date(this.forDate).getTime()
-        )
-      } else {
-        this.eventEndArray[this.suitAddress] = JSON.parse(
-          this.getTransData
-        )[this.suitAddress]
+        this.renderComponent = false
+        this.loading = false
+        this.$nextTick(() => {
+          this.renderComponent = true
+        })
       }
-      this.renderComponent = false
-      this.loading = false
-      this.$nextTick(() => {
-        this.renderComponent = true
-      })
     },
   },
   beforeDestroy() {
