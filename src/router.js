@@ -12,6 +12,11 @@ export default new Router({
             component: () => import ('./views/suit-statistic')
         },
         {
+            path: '/leverage',
+            name: 'leverage',
+            component: () => import ('./views/OurLeverageCreatedOrders')
+        },
+        {
             path: '/suit-statistic',
             name: 'suit-statistic',
             component: () => import ('./views/suit-statistic')

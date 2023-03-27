@@ -1,5 +1,18 @@
 <template>
   <div>
+    <ActionSelector
+            class="selector"
+            :text="[
+          {
+            title: 'Suit Statistic',
+            path: '/suit-statistic',
+          },
+          {
+            title: `Our Leverage`,
+            path: '/leverage',
+          },
+        ]"
+    />
     <div class="event-list">
       <div class="title">
         <div>CREATED SUITS</div>
@@ -43,10 +56,11 @@
 import { mapGetters } from "vuex";
 import { checkAndInstantiateWeb3 } from "@/util/web3";
 import AmountOrdersStatTable from "@/components/tables/AmountOrdersStatTable";
+import ActionSelector from "@/components/tabs/ActionSelector";
 
 export default {
   name: "suit-statistic",
-  components: { AmountOrdersStatTable },
+  components: { AmountOrdersStatTable,  ActionSelector},
   data() {
     return {
       localLoader: false,
@@ -763,7 +777,7 @@ export default {
 }
 
 .selector {
-  margin: 0 0 20px 15px !important;
+  margin: 30px auto;
 }
 .burned {
   margin: 50px 0;

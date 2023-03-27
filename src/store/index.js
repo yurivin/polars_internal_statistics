@@ -8,6 +8,8 @@ import {
   SUITE_FACTORY_ADDRESS,
   PENDING_ORDERS_FACTORY_ADDRESS,
   EVENT_LIFE_CYCLE_FACTORY_ADDRESS,
+  LEVERAGE_CONTRACT_ADDRESS,
+  EVENT_LIFE_CYCLE_CONTRACT_ADDRESS
 } from "@/util/constants/scanConfigs";
 import COLLATERAL_ABI from '@/util/constants/contractsABI/usdcToken.json'
 import ContractInstance from '@/util/ContractInstance'
@@ -27,10 +29,18 @@ export default new Vuex.Store({
     createdEventsContract: localStorage.createdEventsContract
       ? JSON.parse(localStorage.createdEventsContract)
       : [],
+    createdLeverageContract: localStorage.createdLeverageContract
+        ? JSON.parse(localStorage.createdLeverageContract)
+        : [],
+    endedEventContract: localStorage.endedEventContract
+        ? JSON.parse(localStorage.endedEventContract)
+        : [],
     fetch: () => console.log("fetch"),
     loader: null,
     createdOrdersLoader: null,
     createdEventsLoader: null,
+    createdLeverageLoader: null,
+    endedEventLoader: null,
     numbersOfTransOrderMade: localStorage.numbersOfTransOrderMade
       ? JSON.parse(localStorage.numbersOfTransOrderMade)
       : [],
@@ -166,6 +176,48 @@ export default new Vuex.Store({
         console.log(error);
       }
     },
+    async getLeverageTransaction({commit}) {
+      // await state.fetch({ type: "CreatedOrdersContract" });
+      try {
+        let {
+          data: { result: polygonResult },
+        } = await axios.get(
+            `${DEFAULT_SCAN_LINK[LOCATION_NETWORK_ID]}?module=account&action=txlist&address=${LEVERAGE_CONTRACT_ADDRESS[LOCATION_NETWORK_ID]}&startblock=1&endblock=99999999&sort=desc`
+        );
+
+        polygonResult = polygonResult.filter(
+            (item) => item.methodId === "0x451db923"
+                // || item.methodId === '0x514fcac7'
+                && +item.txreceipt_status
+        );
+        commit("setCreatedLeverageContract", polygonResult);
+        commit("setCreatedLeverageLoader", true);
+        setTimeout(() => commit("setPermissionToRequest", true), timeOutApi);
+      } catch (error) {
+        console.log(error);
+      }
+    },
+    async getEventLifeCycleTransaction({commit}) {
+      // await state.fetch({ type: "CreatedOrdersContract" });
+      try {
+        let {
+          data: { result: polygonResult },
+        } = await axios.get(
+            `${DEFAULT_SCAN_LINK[LOCATION_NETWORK_ID]}?module=account&action=txlist&address=${EVENT_LIFE_CYCLE_CONTRACT_ADDRESS[LOCATION_NETWORK_ID]}&startblock=1&endblock=99999999&sort=desc`
+        );
+
+        polygonResult = polygonResult.filter(
+            (item) => item.methodId === "0xd24df289"
+                && +item.txreceipt_status
+        );
+        console.log(polygonResult)
+        commit("setEndedEventContract", polygonResult);
+        commit("setEndedEventLoader", true);
+        setTimeout(() => commit("setPermissionToRequest", true), timeOutApi);
+      } catch (error) {
+        console.log(error);
+      }
+    },
   },
   mutations: {
     setCollateralContract(state, payload){
@@ -205,9 +257,16 @@ export default new Vuex.Store({
       state.finalResultOrders = obj;
       localStorage.finalResultOrders = JSON.stringify(obj);
     },
+    setCreatedLeverageContract(state, payload){
+      state.createdLeverageContract = payload
+      localStorage.createdLeverageContract = JSON.stringify(payload);
+    },
     setCreatedEventsContract(state, payload) {
       state.createdEventsContract = payload;
       localStorage.createdEventsContract = JSON.stringify(payload);
+    },
+    setEndedEventContract(state, payload) {
+      state.endedEventContract = payload
     },
     setCreatedOrdersContract(state, payload) {
       state.createdOrdersContract = payload;
@@ -229,6 +288,12 @@ export default new Vuex.Store({
     setCreatedEventsLoader(state, payload) {
       state.createdEventsLoader = payload;
     },
+    setCreatedLeverageLoader(state, payload){
+      state.createdLeverageLoader = payload
+    },
+    setEndedEventLoader(state, payload){
+      state.endedEventLoader = payload
+    }
   },
 
   getters: {
@@ -244,6 +309,12 @@ export default new Vuex.Store({
     getCreatedOrders(state) {
       return state.createdOrdersContract;
     },
+    getCreatedLeverage(state) {
+      return state.createdLeverageContract;
+    },
+    getEndedEvent(state) {
+      return state.endedEventContract;
+    },
     getSuits(state) {
       return state.createdSuits;
     },
@@ -258,6 +329,9 @@ export default new Vuex.Store({
     },
     getCreatedEventsLoader(state) {
       return state.createdEventsLoader;
+    },
+    getEndedEventLoader(state) {
+      return state.endedEventLoader;
     },
     getPermissionToRequest(state) {
       return state.canSendRequest;
