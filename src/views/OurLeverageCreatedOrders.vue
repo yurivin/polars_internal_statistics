@@ -16,6 +16,7 @@
     <div class="table">
       <div class="table-titles w-100">
         <div class="table-titles-title">Time</div>
+        <div class="table-titles-title">Hash</div>
         <div class="table-titles-title">Own Amount</div>
         <div class="table-titles-title">Total Amount</div>
         <div style="width: 140px"></div>
@@ -78,10 +79,8 @@ export default {
   },
   watch: {
     async getPermissionToRequest() {
-      console.log(this.getPermissionToRequest);
       if (this.getPermissionToRequest &&
               !this.leverageLoader && !this.isLeverageLoad) {
-        console.log('getLeverageCreateOrders')
         await this.getLeverageCreateOrders()
       }
       if (
@@ -90,8 +89,6 @@ export default {
         this.leverageLoader
               && !this.isLoad
       ) {
-        console.log('getEndedEventsIds')
-
         await this.getEndedEventsIds();
       }
     },
@@ -151,13 +148,11 @@ export default {
       this.eventEndArray = this.getTransDataEvent
         ? JSON.parse(this.getTransDataEvent)
         : [];
-      console.log(this.eventEndArray);
       const web3 = await checkAndInstantiateWeb3();
       this.loading = true;
       let hashes = this.getHashesArrayEvent
         ? JSON.parse(this.getHashesArrayEvent)
         : [];
-      console.log(hashes);
       if (!hashes) {
         hashes = [];
       }
@@ -189,7 +184,6 @@ export default {
               );
               endResultObj.eventId = decodeData[1];
               endResultObj.winner = decodeData[0];
-              console.log(endResultObj);
               this.eventEndArray.push(endResultObj);
             }
           }
@@ -268,14 +262,12 @@ export default {
       let endEvents = JSON.parse(sessionStorage.endedEventContractResult);
       let filteredArrays = [];
       for (let i = 0; i < leverageOrders.length; i++) {
-        console.log(this.containsIds(endEvents, leverageOrders[i]));
         if (this.containsIds(endEvents, leverageOrders[i])) {
           filteredArrays.push(leverageOrders[i]);
         }
       }
       this.finalArray = filteredArrays.sort((a, b) => new Date(b.timeStamp) - new Date(a.timeStamp));
       this.eventLoader = true
-      console.log(filteredArrays);
       this.isLoad = false
 
     },
@@ -352,7 +344,6 @@ export default {
                     );
                     leverageOrder.hash = this.getCreatedLeverage[i].hash;
 
-                    console.log(leverageOrder);
                     this.ordersArray.push(leverageOrder);
                   } catch (e) {
                     console.log(e);
@@ -446,7 +437,6 @@ export default {
                       this.getCreatedLeverage[i].timeStamp;
                     leverageOrder.hash = this.getCreatedLeverage[i].hash;
 
-                    console.log(leverageOrder);
                     this.ordersArray.push(leverageOrder);
                   } catch (e) {
                     console.log(e);

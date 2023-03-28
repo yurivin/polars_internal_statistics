@@ -8,6 +8,13 @@
       </div>
       <div class="time">
         <div class="timer">
+          <a :href="scanLink[network] + event.hash" target="_blank">{{ event.hash.substr(-66, 6) }}...{{
+            event.hash.substr(-6, 6)
+            }}</a>
+        </div>
+      </div>
+      <div class="time">
+        <div class="timer">
           {{ (event.ownAmount / Math.pow(10,18)).toFixed(2) }} POL
         </div>
       </div>
@@ -100,7 +107,9 @@
 </template>
 
 <script>
-export default {
+  import {DEFAULT_SCAN_LINK_BLOCKCHAIN_TX, LOCATION_NETWORK_ID} from "@/util/constants/scanConfigs";
+
+  export default {
   name: "TableItem",
   props: {
     event: Object,
@@ -109,6 +118,8 @@ export default {
     return {
       show: false,
       active: true,
+      scanLink: DEFAULT_SCAN_LINK_BLOCKCHAIN_TX,
+      network: LOCATION_NETWORK_ID
     };
   },
   methods: {
@@ -161,6 +172,10 @@ export default {
       text-align: center;
       margin-bottom: 5px;
       color: #ffffff;
+      a{
+        text-decoration: none;
+        color:#fff;
+      }
     }
     .date {
       font-size: 9px;

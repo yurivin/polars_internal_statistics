@@ -170,9 +170,6 @@ export default {
   async mounted() {
     let suitAddress =
       this.$route.path.split("/")[this.$route.path.split("/").length - 1];
-    console.log(
-      this.contractsAddressesBySuitArray[suitAddress].collateralToken
-    );
     if (!localStorage.collateralToken || !JSON.parse(localStorage.collateralToken)[this.contractsAddressesBySuitArray[suitAddress].collateralToken]) {
       await this.$store.dispatch(
               "getCollateralContract",
