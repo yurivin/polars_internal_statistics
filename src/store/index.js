@@ -9,10 +9,10 @@ import {
   PENDING_ORDERS_FACTORY_ADDRESS,
   EVENT_LIFE_CYCLE_FACTORY_ADDRESS,
   LEVERAGE_CONTRACT_ADDRESS,
-  EVENT_LIFE_CYCLE_CONTRACT_ADDRESS
+  EVENT_LIFE_CYCLE_CONTRACT_ADDRESS,
 } from "@/util/constants/scanConfigs";
-import COLLATERAL_ABI from '@/util/constants/contractsABI/usdcToken.json'
-import ContractInstance from '@/util/ContractInstance'
+import COLLATERAL_ABI from "@/util/constants/contractsABI/usdcToken.json";
+import ContractInstance from "@/util/ContractInstance";
 
 // import { debounce } from "@/util/helpers";
 
@@ -30,11 +30,17 @@ export default new Vuex.Store({
       ? JSON.parse(localStorage.createdEventsContract)
       : [],
     createdLeverageContract: localStorage.createdLeverageContract
-        ? JSON.parse(localStorage.createdLeverageContract)
-        : [],
+      ? JSON.parse(localStorage.createdLeverageContract)
+      : {
+          POL: [],
+          USDC: [],
+        },
     endedEventContract: localStorage.endedEventContract
-        ? JSON.parse(localStorage.endedEventContract)
-        : [],
+      ? JSON.parse(localStorage.endedEventContract)
+      : {
+          POL: [],
+          USDC: [],
+        },
     fetch: () => console.log("fetch"),
     loader: null,
     createdOrdersLoader: null,
@@ -54,29 +60,31 @@ export default new Vuex.Store({
       ? JSON.parse(localStorage.finalResultEvents)
       : null,
     canSendRequest: true,
-    collateralContract: localStorage.collateralToken ? JSON.parse(localStorage.collateralToken) : null,
+    collateralContract: localStorage.collateralToken
+      ? JSON.parse(localStorage.collateralToken)
+      : null,
   },
   actions: {
-    async getCollateralContract({commit},collateralTokenAddress){
-        let collateralObject = {
-          [collateralTokenAddress]: {decimals: '', symbol: ''}
-        }
+    async getCollateralContract({ commit }, collateralTokenAddress) {
+      let collateralObject = {
+        [collateralTokenAddress]: { decimals: "", symbol: "" },
+      };
 
-        if (localStorage.collateralToken) {
-          collateralObject = JSON.parse(localStorage.collateralToken)
-          collateralObject[collateralTokenAddress] = {decimals: '', symbol: ''}
-        }
-        const collateralToken = new ContractInstance(
-            COLLATERAL_ABI,
-            collateralTokenAddress
-        )
-        const decimals = (await collateralToken.decimals()).data
-        const symbol = (await collateralToken.symbol()).data
-        collateralObject[collateralTokenAddress].decimals = decimals
-        collateralObject[collateralTokenAddress].symbol = symbol
-        localStorage.collateralToken = JSON.stringify(collateralObject)
-        // let contractObject = {decimals,symbol}
-        commit("setCollateralContract", collateralObject)
+      if (localStorage.collateralToken) {
+        collateralObject = JSON.parse(localStorage.collateralToken);
+        collateralObject[collateralTokenAddress] = { decimals: "", symbol: "" };
+      }
+      const collateralToken = new ContractInstance(
+        COLLATERAL_ABI,
+        collateralTokenAddress
+      );
+      const decimals = (await collateralToken.decimals()).data;
+      const symbol = (await collateralToken.symbol()).data;
+      collateralObject[collateralTokenAddress].decimals = decimals;
+      collateralObject[collateralTokenAddress].symbol = symbol;
+      localStorage.collateralToken = JSON.stringify(collateralObject);
+      // let contractObject = {decimals,symbol}
+      commit("setCollateralContract", collateralObject);
     },
     async getCreatedSuits({ commit }) {
       // await state.fetch({ type: "CreatedSuits" });
@@ -94,7 +102,6 @@ export default new Vuex.Store({
         setTimeout(() => commit("setPermissionToRequest", true), timeOutApi);
       } catch (error) {
         console.log(error);
-
       }
     },
     async getCreatedOrders({ commit }) {
@@ -165,7 +172,10 @@ export default new Vuex.Store({
           `${DEFAULT_SCAN_LINK[LOCATION_NETWORK_ID]}?module=account&action=txlist&address=${addresses.eventAddress}&startblock=1&endblock=99999999&sort=desc`
         );
         polygonResult = polygonResult.filter(
-          (item) => (item.methodId === "0xe2fd38e9" || item.methodId === "0xd24df289") && +item.txreceipt_status
+          (item) =>
+            (item.methodId === "0xe2fd38e9" ||
+              item.methodId === "0xd24df289") &&
+            +item.txreceipt_status
         );
 
         object[addresses.suitAddress][addresses.eventAddress] = polygonResult;
@@ -176,42 +186,50 @@ export default new Vuex.Store({
         console.log(error);
       }
     },
-    async getLeverageTransaction({commit}) {
+    async getLeverageTransaction({ commit }, platform) {
       // await state.fetch({ type: "CreatedOrdersContract" });
+      let object = {
+            'POL': [],
+            'USDC': [],
+          };
       try {
         let {
           data: { result: polygonResult },
         } = await axios.get(
-            `${DEFAULT_SCAN_LINK[LOCATION_NETWORK_ID]}?module=account&action=txlist&address=${LEVERAGE_CONTRACT_ADDRESS[LOCATION_NETWORK_ID]}&startblock=1&endblock=99999999&sort=desc`
+          `${DEFAULT_SCAN_LINK[LOCATION_NETWORK_ID]}?module=account&action=txlist&address=${LEVERAGE_CONTRACT_ADDRESS[platform][LOCATION_NETWORK_ID]}&startblock=1&endblock=99999999&sort=desc`
         );
 
         polygonResult = polygonResult.filter(
-            (item) => item.methodId === "0x451db923"
-                // || item.methodId === '0x514fcac7'
-                && +item.txreceipt_status
+          (item) =>
+            item.methodId === "0x451db923" ||
+            (item.methodId === "0x514fcac7" && +item.txreceipt_status)
         );
-        commit("setCreatedLeverageContract", polygonResult);
+        object[platform] = polygonResult
+        commit("setCreatedLeverageContract", object);
         commit("setCreatedLeverageLoader", true);
         setTimeout(() => commit("setPermissionToRequest", true), timeOutApi);
       } catch (error) {
         console.log(error);
       }
     },
-    async getEventLifeCycleTransaction({commit}) {
+    async getEventLifeCycleTransaction({ commit }, platform) {
       // await state.fetch({ type: "CreatedOrdersContract" });
+      let object = {
+            'POL': [],
+            'USDC': [],
+          };
       try {
         let {
           data: { result: polygonResult },
         } = await axios.get(
-            `${DEFAULT_SCAN_LINK[LOCATION_NETWORK_ID]}?module=account&action=txlist&address=${EVENT_LIFE_CYCLE_CONTRACT_ADDRESS[LOCATION_NETWORK_ID]}&startblock=1&endblock=99999999&sort=desc`
+          `${DEFAULT_SCAN_LINK[LOCATION_NETWORK_ID]}?module=account&action=txlist&address=${EVENT_LIFE_CYCLE_CONTRACT_ADDRESS[platform][LOCATION_NETWORK_ID]}&startblock=1&endblock=99999999&sort=desc`
         );
 
         polygonResult = polygonResult.filter(
-            (item) => item.methodId === "0xd24df289"
-                && +item.txreceipt_status
+          (item) => item.methodId === "0xd24df289" && +item.txreceipt_status
         );
-        console.log(polygonResult)
-        commit("setEndedEventContract", polygonResult);
+        object[platform] = polygonResult
+        commit("setEndedEventContract", object);
         commit("setEndedEventLoader", true);
         setTimeout(() => commit("setPermissionToRequest", true), timeOutApi);
       } catch (error) {
@@ -220,8 +238,8 @@ export default new Vuex.Store({
     },
   },
   mutations: {
-    setCollateralContract(state, payload){
-      state.collateralContract = payload
+    setCollateralContract(state, payload) {
+      state.collateralContract = payload;
     },
     setPermissionToRequest(state, payload) {
       state.canSendRequest = payload;
@@ -257,8 +275,8 @@ export default new Vuex.Store({
       state.finalResultOrders = obj;
       localStorage.finalResultOrders = JSON.stringify(obj);
     },
-    setCreatedLeverageContract(state, payload){
-      state.createdLeverageContract = payload
+    setCreatedLeverageContract(state, payload) {
+      state.createdLeverageContract = payload;
       localStorage.createdLeverageContract = JSON.stringify(payload);
     },
     setCreatedEventsContract(state, payload) {
@@ -266,7 +284,7 @@ export default new Vuex.Store({
       localStorage.createdEventsContract = JSON.stringify(payload);
     },
     setEndedEventContract(state, payload) {
-      state.endedEventContract = payload
+      state.endedEventContract = payload;
     },
     setCreatedOrdersContract(state, payload) {
       state.createdOrdersContract = payload;
@@ -288,12 +306,12 @@ export default new Vuex.Store({
     setCreatedEventsLoader(state, payload) {
       state.createdEventsLoader = payload;
     },
-    setCreatedLeverageLoader(state, payload){
-      state.createdLeverageLoader = payload
+    setCreatedLeverageLoader(state, payload) {
+      state.createdLeverageLoader = payload;
     },
-    setEndedEventLoader(state, payload){
-      state.endedEventLoader = payload
-    }
+    setEndedEventLoader(state, payload) {
+      state.endedEventLoader = payload;
+    },
   },
 
   getters: {
@@ -337,8 +355,8 @@ export default new Vuex.Store({
       return state.canSendRequest;
     },
     getCollateralContract(state) {
-      return state.collateralContract
-    }
+      return state.collateralContract;
+    },
   },
   modules: {},
 });

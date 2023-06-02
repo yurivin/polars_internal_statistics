@@ -12,10 +12,16 @@ export default new Router({
             component: () => import ('./views/suit-statistic')
         },
         {
-            path: '/leverage',
+            path: '/leverage/pol',
             name: 'leverage',
-            component: () => import ('./views/OurLeverageCreatedOrders')
+            component: () => import ('./views/ourPlatforms/OurLeverageCreatedOrdersPol')
         },
+        {
+            path: '/leverage/usdc',
+            name: 'leverage',
+            component: () => import ('./views/ourPlatforms/OurLeverageCreatedOrdersUsdc')
+        },
+
         {
             path: '/suit-statistic',
             name: 'suit-statistic',
@@ -31,5 +37,6 @@ export default new Router({
             name: 'orders',
             component: () => import ('./views/statistic/price')
         },
+
     ]
 })

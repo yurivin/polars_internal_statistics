@@ -12,8 +12,6 @@ class ContractInstance {
       return
     }
 
-    // console.log(this.contractInstance)
-
     for (const method in this.contractInstance.methods) {
       if (abi.findIndex((item) => item.name === method) === -1) {
         continue

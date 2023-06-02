@@ -15,12 +15,12 @@
       </div>
       <div class="time">
         <div class="timer">
-          {{ (event.ownAmount / Math.pow(10,18)).toFixed(2) }} POL
+          {{ (event.ownAmount / Math.pow(10,decimals)).toFixed(2) }} {{token}}
         </div>
       </div>
       <div class="time">
         <div class="timer">
-          {{ (event.orderAmount / Math.pow(10,18)).toFixed(2) }} POL
+          {{ (event.orderAmount / Math.pow(10,decimals)).toFixed(2) }} {{token}}
         </div>
       </div>
       <!--      <div class="teams">-->
@@ -90,6 +90,10 @@
           <span>#{{ event.eventId }}</span>
         </div>
         <div class="d-flex justify-content-between">
+          <span>Order ID</span>
+          <span>#{{ event.orderId }}</span>
+        </div>
+        <div class="d-flex justify-content-between">
           <span>Order Time</span>
           <span> {{ event.timeStamp }}</span>
         </div>
@@ -113,6 +117,8 @@
   name: "TableItem",
   props: {
     event: Object,
+    token: String,
+    decimals: Number,
   },
   data() {
     return {

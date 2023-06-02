@@ -9,7 +9,7 @@
           },
           {
             title: `Our Leverage`,
-            path: '/leverage',
+            path: '/leverage/pol',
           },
         ]"
     />

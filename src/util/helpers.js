@@ -10,7 +10,6 @@ export function clearTimerDebounce() {
 
 export function debounce(callback, delay) {
     return (...args) => {
-        console.log(args)
         let previousCall = lastCall
         lastCall = Date.now()
 
