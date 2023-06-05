@@ -46,8 +46,10 @@
       @sortBy3MonthEvent="sortBy3MonthEvent"
       @sortByMonthEvent="sortByMonthEvent"
     />
-    <div v-else class="loader">
+    <div style="max-width: 100px; margin: auto" v-else>
+    <div class="loader">
       <img src="../assets/images/loader.svg" alt="Loading" />
+    </div>
     </div>
   </div>
 </template>
@@ -560,6 +562,9 @@ export default {
     },
   },
   async mounted() {
+    if (this.$route.path !== '/suit-statistic' && this.$route.path !== '/suit-statistic/') {
+      this.$router.push('/suit-statistic')
+    }
     if (localStorage.createdSuits) {
       this.localLoader = true;
       this.culcSuitsByDate();

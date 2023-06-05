@@ -142,7 +142,7 @@ export const EVENT_LIFE_CYCLE_CONTRACT_ADDRESS = {
   },
 };
 
-export const timeOutApi = 5000;
+export const timeOutApi = 6000;
 
 export const isSuitesVisibles = false;
 // isSuitesVisibles === true - both types of suites available

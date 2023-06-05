@@ -53,7 +53,7 @@
         Nothing to show
       </div>
       <div v-else style="position: relative">
-        <div class="countdown">{{ countDown === 0 ? '...' : countDown}}</div>
+        <div class="countdown">{{ countDown === 0 ? "..." : countDown }}</div>
         <div class="loader">
           <img src="@/assets/images/loader.svg" alt="Loading" />
         </div>
@@ -66,6 +66,7 @@
         </div>
       </div>
     </div>
+    <ChangeNodaModal v-if="isShow" @closeModal="closeModal" />
   </div>
 </template>
 
@@ -74,10 +75,11 @@ import ActionSelector from "@/components/tabs/ActionSelector";
 import { mapGetters } from "vuex";
 import { checkAndInstantiateWeb3 } from "@/util/web3";
 import TableItem from "@/components/TableItem";
+import ChangeNodaModal from "@/components/modal/changeNodaModal";
 
 export default {
   name: "OurLeverageCreatedOrders",
-  components: { TableItem, ActionSelector },
+  components: { ChangeNodaModal, TableItem, ActionSelector },
   data() {
     return {
       suitAddress: "0x0DAE2F8D931e6710cB5233ffEAabF554b43e1e67",
@@ -95,6 +97,7 @@ export default {
       hashes: 0,
       platform: "POL",
       decimals: 18,
+      isShow: false,
     };
   },
   computed: {
@@ -145,6 +148,9 @@ export default {
     },
   },
   methods: {
+    closeModal() {
+      this.isShow = false;
+    },
     contains(arr, elem) {
       for (let i = 0; i < arr.length; i++) {
         if (arr[i].hash === elem.hash) {
@@ -228,32 +234,38 @@ export default {
             eventId: "",
           };
           const dataTransaction = await web3.eth.getTransactionReceipt(
-            this.getEndedEvent[this.platform][i].hash
+                  this.getEndedEvent[this.platform][i].hash
           );
           hashes[this.platform].push({
             hash: this.getEndedEvent[this.platform][i].hash,
             // date: this.hashes[this.suitAddress][i].date,
           });
           let decodeData;
-          for (let j = 0; j < dataTransaction.logs.length; j++) {
-            if (
-              dataTransaction.logs[j].topics[0] ===
-              "0xc708083d98e4717d42ca18ffc5618bfabdc6fb2f04e8c403d2edc8eed2e6ceab"
-            ) {
-              decodeData = await web3.eth.abi.decodeParameters(
-                ["int8", "uint256"],
-                dataTransaction.logs[j].data
-              );
-              endResultObj.eventId = decodeData[1];
-              endResultObj.winner = decodeData[0];
-              this.eventEndArray[this.platform].push(endResultObj);
+          try {
+            for (let j = 0; j < dataTransaction.logs.length; j++) {
+              if (
+                      dataTransaction.logs[j].topics[0] ===
+                      "0xc708083d98e4717d42ca18ffc5618bfabdc6fb2f04e8c403d2edc8eed2e6ceab"
+              ) {
+                decodeData = await web3.eth.abi.decodeParameters(
+                        ["int8", "uint256"],
+                        dataTransaction.logs[j].data
+                );
+                endResultObj.eventId = decodeData[1];
+                endResultObj.winner = decodeData[0];
+                this.eventEndArray[this.platform].push(endResultObj);
+              }
             }
+            this.count += 1;
+            localStorage.endedEventContractResult = JSON.stringify(
+                    this.eventEndArray
+            );
+            localStorage.endedEventHashes = JSON.stringify(hashes);
+          } catch (e) {
+            console.log(e)
+            this.isShow = true
+            return
           }
-          this.count += 1;
-          localStorage.endedEventContractResult = JSON.stringify(
-            this.eventEndArray
-          );
-          localStorage.endedEventHashes = JSON.stringify(hashes);
         }
       } else if (
         this.getHashesArrayEvent &&
@@ -276,11 +288,11 @@ export default {
         arr = arr.filter((item) => item !== true);
         hashes = JSON.parse(this.getHashesArrayEvent);
         this.eventEndArray = this.getTransDataEvent
-                ? JSON.parse(this.getTransDataEvent)
-                : {
-                  ["POL"]: [],
-                  ["USDC"]: [],
-                };
+          ? JSON.parse(this.getTransDataEvent)
+          : {
+              ["POL"]: [],
+              ["USDC"]: [],
+            };
         this.hashes = arr.length;
         this.count = 0;
         for (let i = 0; i < this.getEndedEvent[this.platform].length; i++) {
@@ -300,19 +312,25 @@ export default {
               winner: "",
               eventId: "",
             };
-            for (let j = 0; j < dataTransaction.logs.length; j++) {
-              if (
-                dataTransaction.logs[j].topics[0] ===
-                "0xc708083d98e4717d42ca18ffc5618bfabdc6fb2f04e8c403d2edc8eed2e6ceab"
-              ) {
-                decodeData = await web3.eth.abi.decodeParameters(
-                  ["int8", "uint256"],
-                  dataTransaction.logs[j].data
-                );
-                endResultObj.eventId = decodeData[1];
-                endResultObj.winner = decodeData[0];
-                this.eventEndArray[this.platform].push(endResultObj);
+            try {
+              for (let j = 0; j < dataTransaction.logs.length; j++) {
+                if (
+                        dataTransaction.logs[j].topics[0] ===
+                        "0xc708083d98e4717d42ca18ffc5618bfabdc6fb2f04e8c403d2edc8eed2e6ceab"
+                ) {
+                  decodeData = await web3.eth.abi.decodeParameters(
+                          ["int8", "uint256"],
+                          dataTransaction.logs[j].data
+                  );
+                  endResultObj.eventId = decodeData[1];
+                  endResultObj.winner = decodeData[0];
+                  this.eventEndArray[this.platform].push(endResultObj);
+                }
               }
+            } catch (e) {
+              console.log(e)
+              this.isShow = true
+              return
             }
           }
           localStorage.endedEventContractResult = JSON.stringify(
@@ -336,12 +354,19 @@ export default {
       let filteredArrays = [];
       let finalArray = [];
       for (let i = 0; i < leverageOrders[this.platform].length; i++) {
-        if (this.containsIds(endEvents[this.platform], leverageOrders[this.platform][i])) {
+        if (
+          this.containsIds(
+            endEvents[this.platform],
+            leverageOrders[this.platform][i]
+          )
+        ) {
           filteredArrays.push(leverageOrders[this.platform][i]);
         }
       }
       for (let i = 0; i < filteredArrays.length; i++) {
-        if (this.containsOrdersIds(cancelOrders[this.platform], filteredArrays[i])) {
+        if (
+          this.containsOrdersIds(cancelOrders[this.platform], filteredArrays[i])
+        ) {
           finalArray.push(filteredArrays[i]);
         }
       }
@@ -365,11 +390,11 @@ export default {
             ["USDC"]: [],
           };
       this.cancelArray = this.getCanceledDataResult
-              ? JSON.parse(this.getCanceledDataResult)
-              : {
-                ["POL"]: [],
-                ["USDC"]: [],
-              };
+        ? JSON.parse(this.getCanceledDataResult)
+        : {
+            ["POL"]: [],
+            ["USDC"]: [],
+          };
       this.loading = true;
 
       let hashes = this.getHashesArray
@@ -392,13 +417,21 @@ export default {
       ) {
         if (
           (!this.getTransData &&
-            (!this.getTransData || !JSON.parse(this.getTransData)[this.platform])) ||
+            (!this.getTransData ||
+              !JSON.parse(this.getTransData)[this.platform])) ||
           !this.ordersArray[this.platform].length
         ) {
           this.hashes = this.getCreatedLeverage[this.platform].length;
           this.count = 0;
-          for (let i = 0; i < this.getCreatedLeverage[this.platform].length; i++) {
-            if (this.getCreatedLeverage[this.platform][i].methodId === "0x451db923") {
+          for (
+            let i = 0;
+            i < this.getCreatedLeverage[this.platform].length;
+            i++
+          ) {
+            if (
+              this.getCreatedLeverage[this.platform][i].methodId ===
+              "0x451db923"
+            ) {
               const dataTransaction = await web3.eth.getTransactionReceipt(
                 this.getCreatedLeverage[this.platform][i].hash
               );
@@ -419,7 +452,7 @@ export default {
                 timeStamp: "",
                 hash: "",
               };
-              if (dataTransaction) {
+              try {
                 for (let j = 0; j < dataTransaction.logs.length; j++) {
                   if (
                     dataTransaction.logs[j].topics[0] ===
@@ -452,7 +485,8 @@ export default {
                       leverageOrder.timeStamp = this.transformDate(
                         this.getCreatedLeverage[this.platform][i].timeStamp
                       );
-                      leverageOrder.hash = this.getCreatedLeverage[this.platform][i].hash;
+                      leverageOrder.hash =
+                        this.getCreatedLeverage[this.platform][i].hash;
 
                       this.ordersArray[this.platform].push(leverageOrder);
                     } catch (e) {
@@ -460,6 +494,10 @@ export default {
                     }
                   }
                 }
+              } catch (e) {
+                console.log(e)
+                this.isShow = true
+                return
               }
             } else {
               const dataTransaction = await web3.eth.getTransactionReceipt(
@@ -472,7 +510,7 @@ export default {
               let cancelOrder = {
                 orderId: "",
               };
-              if (dataTransaction) {
+              try {
                 for (let j = 0; j < dataTransaction.logs.length; j++) {
                   if (
                     dataTransaction.logs[j].topics[0] ===
@@ -490,6 +528,10 @@ export default {
                     }
                   }
                 }
+              } catch (e) {
+                console.log(e)
+                this.isShow = true
+                return
               }
             }
             localStorage.createdLeverageContractResult = JSON.stringify(
@@ -505,16 +547,21 @@ export default {
       } else if (
         this.getHashesArray &&
         JSON.stringify(hashes[this.platform]) &&
-              JSON.stringify(hashes[this.platform]) !== JSON.stringify(this.getCreatedLeverage[this.platform])
+        JSON.stringify(hashes[this.platform]) !==
+          JSON.stringify(this.getCreatedLeverage[this.platform])
       ) {
         this.ordersArray = this.getTransData
           ? JSON.parse(this.getTransData)
           : this.ordersArray;
         let arr = [];
-        for (let i = 0; i < this.getCreatedLeverage[this.platform].length; i++) {
+        for (
+          let i = 0;
+          i < this.getCreatedLeverage[this.platform].length;
+          i++
+        ) {
           arr.push(
             this.containsObj(
-                    hashes[this.platform],
+              hashes[this.platform],
               this.getCreatedLeverage[this.platform][i]
             )
           );
@@ -522,15 +569,20 @@ export default {
         arr = arr.filter((item) => item !== true);
         this.ordersArray = JSON.parse(this.getTransData);
         this.count = 0;
-        this.hashes = this.getCreatedLeverage[this.platform].length - hashes[this.platform].length
-        for (let i = 0; i < this.getCreatedLeverage[this.platform].length; i++) {
+        this.hashes =
+          this.getCreatedLeverage[this.platform].length -
+          hashes[this.platform].length;
+        for (
+          let i = 0;
+          i < this.getCreatedLeverage[this.platform].length;
+          i++
+        ) {
           if (
             !this.contains(
               hashes[this.platform],
               this.getCreatedLeverage[this.platform][i]
             )
           ) {
-
             const dataTransaction = await web3.eth.getTransactionReceipt(
               this.getCreatedLeverage[this.platform][i].hash
             );
@@ -540,7 +592,10 @@ export default {
               // date: this.hashes[this.suitAddress][i].date,
             });
 
-            if (this.getCreatedLeverage[this.platform][i].methodId === "0x451db923") {
+            if (
+              this.getCreatedLeverage[this.platform][i].methodId ===
+              "0x451db923"
+            ) {
               let decodeData;
               let leverageOrder = {
                 orderId: "",
@@ -555,7 +610,7 @@ export default {
                 timeStamp: "",
                 hash: "",
               };
-              if (dataTransaction) {
+              try {
                 for (let j = 0; j < dataTransaction.logs.length; j++) {
                   if (
                     dataTransaction.logs[j].topics[0] ===
@@ -588,7 +643,8 @@ export default {
                       leverageOrder.timeStamp = this.transformDate(
                         this.getCreatedLeverage[this.platform][i].timeStamp
                       );
-                      leverageOrder.hash = this.getCreatedLeverage[this.platform][i].hash;
+                      leverageOrder.hash =
+                        this.getCreatedLeverage[this.platform][i].hash;
 
                       this.ordersArray[this.platform].push(leverageOrder);
                     } catch (e) {
@@ -596,6 +652,10 @@ export default {
                     }
                   }
                 }
+              } catch (e) {
+                console.log(e)
+                this.isShow = true
+                return
               }
             } else {
               const dataTransaction = await web3.eth.getTransactionReceipt(
@@ -605,7 +665,7 @@ export default {
               let cancelOrder = {
                 orderId: "",
               };
-              if (dataTransaction) {
+              try {
                 for (let j = 0; j < dataTransaction.logs.length; j++) {
                   if (
                     dataTransaction.logs[j].topics[0] ===
@@ -625,6 +685,10 @@ export default {
                     }
                   }
                 }
+              } catch (e) {
+                console.log(e)
+                this.isShow = true
+                return
               }
             }
           }
@@ -649,18 +713,18 @@ export default {
       this.isLeverageLoad = false;
     },
     countDownTimer() {
-        this.countDown = Math.floor((this.hashes - this.count) / 5);
-      if (this.countDown < 0){
-        clearInterval(this.updateInterval)
-        this.countDown = '...'
+      this.countDown = Math.floor((this.hashes - this.count) / 5);
+      if (this.countDown < 0) {
+        clearInterval(this.updateInterval);
+        this.countDown = "...";
       }
     },
   },
   created() {
-    this.updateInterval = setInterval(this.countDownTimer, 500)
+    this.updateInterval = setInterval(this.countDownTimer, 500);
   },
   beforeDestroy() {
-    clearInterval(this.updateInterval)
+    clearInterval(this.updateInterval);
 
     // this.countDown = -1;
   },
